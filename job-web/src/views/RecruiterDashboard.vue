@@ -1,0 +1,258 @@
+<template>
+  <div>
+    <nav class="navbar navbar-dark bg-dark mb-0">
+      <div class="container">
+        <span class="navbar-brand">🏢 企业招聘管理后台</span>
+        <button class="btn btn-outline-light btn-sm" @click="$router.push('/home')">返回首页</button>
+      </div>
+    </nav>
+
+    <div class="d-flex" style="min-height: 100vh;">
+      <div class="bg-light border-end p-3" style="width: 250px;">
+        <div class="list-group list-group-flush">
+          <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'post' }" @click="currentTab = 'post'">
+            ✍️ 发布新职位
+          </button>
+          <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'myjobs' }" @click="currentTab = 'myjobs'">
+            📋 职位管理
+          </button>
+          <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'candidates' }" @click="currentTab = 'candidates'">
+            👥 候选人处理
+            <span v-if="applications.length > 0" class="badge bg-danger ms-2">{{ applications.length }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-grow-1 p-4">
+
+        <div v-if="currentTab === 'post'">
+          <h4>发布新职位</h4>
+          <hr>
+          <form @submit.prevent="createJob">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label>职位名称</label>
+                <input type="text" class="form-control" v-model="jobForm.job_title" required>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label>城市</label>
+                <input type="text" class="form-control" v-model="jobForm.city" required>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label>学历要求</label>
+                <select class="form-select" v-model="jobForm.education_req">
+                  <option>本科</option><option>硕士</option><option>大专</option><option>不限</option>
+                </select>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>经验要求</label>
+                <select class="form-select" v-model="jobForm.exp_req">
+                  <option>不限</option><option>1年以内</option><option>1-3年</option><option>3-5年</option><option>5年以上</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label>职位标签（用逗号分隔，如：Python,后端）</label>
+                <input type="text" class="form-control" v-model="jobForm.job_tags" required>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label>薪资范围 (k)</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" v-model="jobForm.salary_min" placeholder="Min">
+                  <span class="input-group-text">-</span>
+                  <input type="number" class="form-control" v-model="jobForm.salary_max" placeholder="Max">
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label>职位类型</label>
+                 <select class="form-select" v-model="jobForm.job_type">
+                  <option value="全职">全职</option><option value="实习">实习</option><option value="兼职">兼职</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label>职位描述</label>
+              <textarea class="form-control" rows="5" v-model="jobForm.description" required></textarea>
+            </div>
+            <button class="btn btn-primary">🚀 立即发布</button>
+          </form>
+        </div>
+
+        <div v-if="currentTab === 'myjobs'">
+          <h4>已发布职位</h4>
+          <hr>
+          <table class="table align-middle">
+            <thead><tr><th>名称</th><th>发布时间</th><th>当前状态</th><th>操作</th></tr></thead>
+            <tbody>
+              <tr v-for="job in myJobs" :key="job.id">
+                <td>{{ job.job_title }}</td>
+                <td>{{ new Date(job.create_time).toLocaleDateString() }}</td>
+                <td>
+                  <span class="badge" :class="job.status === 1 ? 'bg-success' : 'bg-secondary'">
+                    {{ job.status === 1 ? '招聘中' : '已停止' }}
+                  </span>
+                </td>
+                <td>
+                  <button v-if="job.status === 1" class="btn btn-sm btn-outline-danger" @click="toggleJobStatus(job.id, 2)">
+                    ⛔ 停止招聘
+                  </button>
+                  <button v-else class="btn btn-sm btn-outline-success" @click="toggleJobStatus(job.id, 1)">
+                    ✅ 恢复招聘
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="currentTab === 'candidates'">
+          <h4>收到的简历</h4>
+          <hr>
+          <div v-for="app in applications" :key="app.id" class="card mb-3">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <h5>{{ app.job_info.job_title }} <small class="text-muted">- 候选人ID: {{ app.resume }}</small></h5>
+                <span class="badge" :class="getBadgeClass(app.status)">{{ getStatusText(app.status) }}</span>
+              </div>
+              <p class="text-muted small">投递时间：{{ new Date(app.apply_time).toLocaleString() }}</p>
+
+              <div class="d-flex gap-2">
+                <a :href="getResumeUrl(app.resume_file_url)" target="_blank" download class="btn btn-sm btn-outline-primary">
+                📄 下载简历
+                </a>
+
+                <button v-if="app.status === 0" class="btn btn-sm btn-success" @click="updateStatus(app.id, 2)">
+                  ✅ 邀请面试
+                </button>
+                <button v-if="app.status === 0" class="btn btn-sm btn-danger" @click="updateStatus(app.id, 4)">
+                  ❌ 不合适
+                </button>
+              </div>
+            </div>
+          </div>
+          <p v-if="applications.length === 0" class="text-muted">暂无收到的投递。</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+import axios from 'axios'
+
+const currentTab = ref('post')
+const myJobs = ref([])
+const applications = ref([])
+const token = localStorage.getItem('access_token')
+
+const jobForm = reactive({
+  job_title: '', city: '北京', salary_min: 10, salary_max: 20,
+  education_req: '本科',exp_req: '不限',
+  job_tags: '', job_type: '全职', description: ''
+})
+
+// 发布职位
+const createJob = async () => {
+  try {
+    await axios.post('http://127.0.0.1:8000/api/jobs/', jobForm,{
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    alert('发布成功！请等待管理员审核。')
+    // 清空表单
+    jobForm.job_title = ''
+    jobForm.description = ''
+  } catch (e) {
+      // 打印完整错误到控制台，方便调试
+      console.dir(e);
+      // 尝试提取后端的详细报错信息
+      const errorMsg = e.response?.data?.detail || JSON.stringify(e.response?.data) || '发布失败';
+      alert('发布失败: ' + errorMsg);
+    }
+}
+
+// 获取职位 (加了 try-catch)
+const fetchMyJobs = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/jobs/recruiter/my-jobs/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    myJobs.value = res.data
+  } catch (error) {
+    console.error('获取职位失败:', error)
+    if (error.response && error.response.status === 401) {
+      alert('登录已过期，请重新登录！')
+      // 可以在这里加个自动跳转： router.push('/login')
+    }
+  }
+}
+
+// 切换职位状态
+const toggleJobStatus = async (jobId, newStatus) => {
+  try {
+    await axios.patch(`http://127.0.0.1:8000/api/jobs/${jobId}/status/`,
+      { status: newStatus },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    )
+    fetchMyJobs() // 刷新状态
+  } catch (error) {
+    alert('操作失败')
+  }
+}
+
+// 获取简历 (加了 try-catch)
+const fetchApplications = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/recruitment/recruiter/applications/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    applications.value = res.data
+  } catch (error) {
+    console.error('获取申请失败:', error)
+    // 默默处理错误，防止页面卡死
+  }
+}
+
+// 修改简历状态
+const updateStatus = async (appId, newStatus) => {
+  try {
+    await axios.patch(`http://127.0.0.1:8000/api/recruitment/applications/${appId}/status/`,
+      { status: newStatus },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    )
+    alert('操作成功！')
+    fetchApplications()
+  } catch (e) {
+    console.error(e)
+    alert('操作失败: ' + (e.response?.data?.detail || '未知错误'))
+  }
+}
+
+// 辅助：处理简历URL
+const getResumeUrl = (path) => {
+  if (!path) return '#'
+  if (path.startsWith('http')) return path
+  // 确保没有双重斜杠
+  if (path.startsWith('/media/')) return `http://127.0.0.1:8000${path}`
+  return `http://127.0.0.1:8000/media/${path}`
+}
+
+const getStatusText = (s) => {
+  const map = {0: '未读', 1: '已读', 2: '面试邀请', 3: '录用', 4: '不合适'}
+  return map[s] || s
+}
+
+const getBadgeClass = (s) => {
+   const map = {0: 'bg-secondary', 2: 'bg-warning text-dark', 3: 'bg-success', 4: 'bg-danger'}
+   return map[s] || 'bg-light text-dark'
+}
+
+onMounted(() => {
+  fetchMyJobs()
+  fetchApplications()
+})
+</script>
