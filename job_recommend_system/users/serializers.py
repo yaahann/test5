@@ -2,7 +2,8 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, JobSeeker,Recruiter
 
-# 1. 注册序列化器 (已有的)
+
+# 1. 注册序列化器
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -10,23 +11,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        # 1. 正常创建 User 账号
-        user = User(
-            username=validated_data['username'],
-            role_type=validated_data.get('role_type'),
-            # 把其它需要的字段也填上，比如 phone, email 等
-        )
-        user.set_password(validated_data['password'])
-        user.save()
+        # 1. 创建基础的 User 数据
+        user = User.objects.create_user(**validated_data)
 
-        # 2. 根据前端传来的 role_type，自动创建关联的档案表
-        # 注意：这里的 1 和 2 请替换成你 models.py 中实际定义的 role_type 值
-        # 比如你的 role_type 是字符串 'recruiter' 还是数字 2
-        role = validated_data.get('role_type')
-        if role == 2:  # 假设 2 代表招聘者
-            Recruiter.objects.create(user=user)
-        else:          # 默认或者 1 代表求职者
+        # 2. 根据角色类型自动创建对应的资料表
+        if user.role_type == 1:
+            # 如果是求职者，创建求职者档案
             JobSeeker.objects.create(user=user)
+        elif user.role_type == 2:
+            # 如果是招聘者，创建招聘者档案
+            # 注意：你在 models.py 中的 company_name 字段是必填的，所以初始需要给个默认值
+            Recruiter.objects.create(user=user)
 
         return user
 

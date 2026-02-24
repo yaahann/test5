@@ -29,8 +29,20 @@ class PublicCompanyListView(generics.ListAPIView):
     serializer_class = RecruiterSerializer # 我们需要确保 serializers.py 里有这个
     permission_classes = [permissions.AllowAny] # 允许任何人访问
 
-# 5.公开的公司详情 (用于"企业详情页")
+# 5.招聘者公司详情接口 （查看+修改）
+class RecruiterDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = RecruiterSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        # 返回当前登录用户的 Recruiter 对象
+        # 如果没有，就自动创建一个空的 (由于你已经把 company_name 设为 blank=True，这里可以直接创建)
+        obj, created = Recruiter.objects.get_or_create(user=self.request.user)
+        return obj
+
+# 6.公开的公司详情 (用于"企业详情页")
 class PublicCompanyDetailView(generics.RetrieveAPIView):
     queryset = Recruiter.objects.all()
     serializer_class = RecruiterSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.AllowAny] # 允许不登录访问
+

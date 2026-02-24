@@ -56,7 +56,7 @@ class Recruiter(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='recruiter_profile',
                                 verbose_name='关联用户')
 
-    company_name = models.CharField(max_length=100, verbose_name='公司名称')
+    company_name = models.CharField(max_length=100, verbose_name='公司名称',blank=True)
     company_scale = models.CharField(max_length=50, verbose_name='公司规模', blank=True)
     industry = models.CharField(max_length=50, verbose_name='所属行业', blank=True)
     company_addr = models.CharField(max_length=255, verbose_name='企业地址', blank=True)
@@ -73,4 +73,4 @@ class Recruiter(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return self.company_name
+        return self.company_name if self.company_name else f"{self.user.username} (待完善企业)"

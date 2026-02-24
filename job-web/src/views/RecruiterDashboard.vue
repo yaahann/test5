@@ -10,6 +10,9 @@
     <div class="d-flex" style="min-height: 100vh;">
       <div class="bg-light border-end p-3" style="width: 250px;">
         <div class="list-group list-group-flush">
+          <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'profile' }" @click="currentTab = 'profile'">
+            🏢 企业信息完善
+          </button>
           <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'post' }" @click="currentTab = 'post'">
             ✍️ 发布新职位
           </button>
@@ -24,6 +27,42 @@
       </div>
 
       <div class="flex-grow-1 p-4">
+
+        <div v-if="currentTab === 'profile'">
+          <h4>企业信息完善</h4>
+          <hr>
+          <form @submit.prevent="updateProfile" class="col-md-8">
+            <div class="mb-3">
+              <label class="form-label">企业名称 <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model="profileForm.company_name" required placeholder="请输入公司全称">
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">所属行业</label>
+                <input type="text" class="form-control" v-model="profileForm.industry" placeholder="例如：互联网/电子商务">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">公司规模</label>
+                <select class="form-select" v-model="profileForm.company_scale">
+                  <option value="">请选择</option>
+                  <option value="0-20人">0-20人</option>
+                  <option value="20-99人">20-99人</option>
+                  <option value="100-499人">100-499人</option>
+                  <option value="500-999人">500-999人</option>
+                  <option value="1000人以上">1000人以上</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label">企业详细地址</label>
+              <input type="text" class="form-control" v-model="profileForm.company_addr" placeholder="例如：上海市浦东新区xxx街道xxx号">
+            </div>
+
+            <button type="submit" class="btn btn-primary">💾 保存修改</button>
+          </form>
+        </div>
 
         <div v-if="currentTab === 'post'">
           <h4>发布新职位</h4>
@@ -145,16 +184,56 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 
-const currentTab = ref('post')
+// 修改：默认显示"企业信息"页面
+const currentTab = ref('profile')
 const myJobs = ref([])
 const applications = ref([])
-const token = localStorage.getItem('access_token')
+// 从本地存储获取token（这里如果获取不到，要注意提示登录）
+const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+
+// 新增：企业信息表单数据
+const profileForm = reactive({
+  company_name: '',
+  industry: '',
+  company_scale: '',
+  company_addr: ''
+})
 
 const jobForm = reactive({
   job_title: '', city: '北京', salary_min: 10, salary_max: 20,
   education_req: '本科',exp_req: '不限',
   job_tags: '', job_type: '全职', description: ''
 })
+
+// 新增：获取企业资料
+const fetchProfile = async () => {
+  if (!token) return;
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/users/recruiter/profile/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    // 赋值给表单
+    profileForm.company_name = res.data.company_name || ''
+    profileForm.industry = res.data.industry || ''
+    profileForm.company_scale = res.data.company_scale || ''
+    profileForm.company_addr = res.data.company_addr || ''
+  } catch (error) {
+    console.error('获取企业资料失败:', error)
+  }
+}
+
+// 新增：更新企业资料
+const updateProfile = async () => {
+  try {
+    await axios.patch('http://127.0.0.1:8000/api/users/recruiter/profile/', profileForm, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    alert('✅ 企业信息保存成功！')
+  } catch (error) {
+    console.error('保存失败:', error)
+    alert('保存失败，请检查网络或联系管理员')
+  }
+}
 
 // 发布职位
 const createJob = async () => {
@@ -167,16 +246,15 @@ const createJob = async () => {
     jobForm.job_title = ''
     jobForm.description = ''
   } catch (e) {
-      // 打印完整错误到控制台，方便调试
       console.dir(e);
-      // 尝试提取后端的详细报错信息
       const errorMsg = e.response?.data?.detail || JSON.stringify(e.response?.data) || '发布失败';
       alert('发布失败: ' + errorMsg);
     }
 }
 
-// 获取职位 (加了 try-catch)
+// 获取职位
 const fetchMyJobs = async () => {
+  if (!token) return;
   try {
     const res = await axios.get('http://127.0.0.1:8000/api/jobs/recruiter/my-jobs/', {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -186,7 +264,6 @@ const fetchMyJobs = async () => {
     console.error('获取职位失败:', error)
     if (error.response && error.response.status === 401) {
       alert('登录已过期，请重新登录！')
-      // 可以在这里加个自动跳转： router.push('/login')
     }
   }
 }
@@ -204,8 +281,9 @@ const toggleJobStatus = async (jobId, newStatus) => {
   }
 }
 
-// 获取简历 (加了 try-catch)
+// 获取简历
 const fetchApplications = async () => {
+  if (!token) return;
   try {
     const res = await axios.get('http://127.0.0.1:8000/api/recruitment/recruiter/applications/', {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -213,7 +291,6 @@ const fetchApplications = async () => {
     applications.value = res.data
   } catch (error) {
     console.error('获取申请失败:', error)
-    // 默默处理错误，防止页面卡死
   }
 }
 
@@ -236,7 +313,6 @@ const updateStatus = async (appId, newStatus) => {
 const getResumeUrl = (path) => {
   if (!path) return '#'
   if (path.startsWith('http')) return path
-  // 确保没有双重斜杠
   if (path.startsWith('/media/')) return `http://127.0.0.1:8000${path}`
   return `http://127.0.0.1:8000/media/${path}`
 }
@@ -252,6 +328,8 @@ const getBadgeClass = (s) => {
 }
 
 onMounted(() => {
+  // 新增：初始化时加载企业资料
+  fetchProfile()
   fetchMyJobs()
   fetchApplications()
 })
