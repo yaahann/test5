@@ -58,6 +58,14 @@
               </div>
             </div>
 
+            <button
+              class="btn w-100 py-2 fw-bold mb-3"
+              :class="isCollected ? 'btn-warning' : 'btn-outline-warning'"
+              @click="toggleCollect"
+            >
+              {{ isCollected ? '🌟 已收藏' : '⭐ 收藏职位' }}
+            </button>
+
             <button class="btn btn-primary w-100 py-2 fw-bold" @click="openApplyModal">
               🚀 立即投递简历
             </button>
@@ -142,8 +150,8 @@ const goToCompany = (companyId) => {
   }
 }
 
-// --- 原有核心逻辑 ---
 
+const isCollected = ref(false)
 // 1. 获取职位详情
 const fetchJobDetail = async () => {
   try {
@@ -152,10 +160,34 @@ const fetchJobDetail = async () => {
     })
     job.value = res.data
     console.log("后端返回的职位详情：", job.value)
+    if (token) {
+      const collRes = await axios.get('http://127.0.0.1:8000/api/jobs/collection/', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      isCollected.value = collRes.data.some(item => item.job === job.value.id)
+    }
   } catch (error) {
     console.error('获取职位详情失败:', error)
     alert('该职位不存在或已被删除')
     router.push('/jobs') // 获取失败退回列表页
+  }
+}
+
+// 点击收藏/取消收藏
+const toggleCollect = async () => {
+  if (!token) {
+    alert('请先登录求职者账号！')
+    router.push('/login')
+    return
+  }
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/jobs/collection/', { job: job.value.id }, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    isCollected.value = res.data.is_collected
+  } catch (error) {
+    console.error('收藏报错详情:', error)
+    alert(error.response?.data?.detail || '操作失败，请确认您是否是求职者账号')
   }
 }
 
@@ -213,6 +245,8 @@ const confirmApply = async () => {
 onMounted(() => {
   fetchJobDetail()
 })
+
+
 </script>
 
 <style scoped>

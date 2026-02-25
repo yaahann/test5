@@ -19,6 +19,9 @@
           <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'applications' }" @click="currentTab = 'applications'">
             📫 投递记录
           </button>
+          <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'collection' }" @click="currentTab = 'collection'">
+            ⭐ 我的收藏
+          </button>
         </div>
       </div>
 
@@ -132,6 +135,29 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <div v-if="currentTab === 'collection'">
+          <h4>我的收藏</h4>
+          <hr>
+          <div class="row">
+            <div class="col-md-6 mb-3" v-for="item in myCollections" :key="item.id">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h5 class="text-primary fw-bold">{{ item.job_info.job_title }}</h5>
+                  <p class="text-danger fw-bold mb-1">{{ item.job_info.salary_min }}k - {{ item.job_info.salary_max }}k</p>
+                  <p class="text-muted small mb-3">🏢 {{ item.job_info.company_name }} | 📍 {{ item.job_info.city }}</p>
+                  <div class="d-flex justify-content-between">
+                    <button class="btn btn-sm btn-outline-primary w-50 me-2" @click="$router.push(`/jobs/${item.job_info.id}`)">查看详情</button>
+                    <button class="btn btn-sm btn-outline-danger w-50" @click="removeCollection(item.job)">取消收藏</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-if="myCollections.length === 0" class="col-12 text-center text-muted py-5">
+              您还没有收藏过任何职位哦。
+            </div>
+          </div>
         </div>
 
       </div>
@@ -272,9 +298,49 @@ defineExpose({
   getStatusBadge
 })
 
+// 新增响应式变量
+const myCollections = ref([])
+// 获取收藏列表
+const fetchCollections = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/jobs/collection/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    myCollections.value = res.data
+  } catch (error) { console.error('获取收藏失败:', error) }
+}
+
+// 在列表页快速取消收藏
+const removeCollection = async (jobId) => {
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/jobs/collection/', { job: jobId }, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    // 根据后端返回的状态提示
+    alert(res.data.message)
+    fetchCollections() // 刷新列表
+  } catch (error) {
+    // 区分不同错误类型提示
+    if (error.response) {
+      if (error.response.status === 403) {
+        alert('操作失败：' + error.response.data.detail) // 提示“只有求职者可以收藏”
+      } else if (error.response.status === 400) {
+        alert('操作失败：缺少职位参数')
+      } else if (error.response.status === 404) {
+        alert('操作失败：该职位不存在')
+      } else {
+        alert('操作失败：' + (error.response.data.detail || '服务器错误'))
+      }
+    } else {
+      alert('操作失败：网络异常')
+    }
+  }
+}
+
 onMounted(() => {
   fetchProfile()
   fetchResumes()
   fetchApplications()
+  fetchCollections()
 })
 </script>

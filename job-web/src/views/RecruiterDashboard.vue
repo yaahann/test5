@@ -140,6 +140,9 @@
                   </span>
                 </td>
                 <td>
+                  <button class="btn btn-sm btn-outline-primary me-2" @click="openEditModal(job)">
+                    ✏️ 编辑
+                  </button>
                   <button v-if="job.status === 1" class="btn btn-sm btn-outline-danger" @click="toggleJobStatus(job.id, 2)">
                     ⛔ 停止招聘
                   </button>
@@ -163,17 +166,32 @@
               </div>
               <p class="text-muted small">投递时间：{{ new Date(app.apply_time).toLocaleString() }}</p>
 
-              <div class="d-flex gap-2">
+             <div class="d-flex gap-2 align-items-center">
                 <a :href="getResumeUrl(app.resume_file_url)" target="_blank" download class="btn btn-sm btn-outline-primary">
-                📄 下载简历
+                  📄 下载简历
                 </a>
 
-                <button v-if="app.status === 0" class="btn btn-sm btn-success" @click="updateStatus(app.id, 2)">
-                  ✅ 邀请面试
-                </button>
-                <button v-if="app.status === 0" class="btn btn-sm btn-danger" @click="updateStatus(app.id, 4)">
-                  ❌ 不合适
-                </button>
+                <template v-if="app.status === 0">
+                  <button class="btn btn-sm btn-success" @click="updateStatus(app.id, 2)">
+                    ✅ 邀请面试
+                  </button>
+                  <button class="btn btn-sm btn-danger" @click="updateStatus(app.id, 4)">
+                    ❌ 不合适
+                  </button>
+                </template>
+
+                <template v-if="app.status === 2">
+                  <button class="btn btn-sm btn-success" @click="updateStatus(app.id, 3)">
+                    🎉 录用
+                  </button>
+                  <button class="btn btn-sm btn-danger" @click="updateStatus(app.id, 4)">
+                    ❌ 不合适
+                  </button>
+                </template>
+
+                <span v-if="app.status === 3 || app.status === 4" class="text-muted small ms-2">
+                  🔒 已处理完结
+                </span>
               </div>
             </div>
           </div>
@@ -183,10 +201,77 @@
       </div>
     </div>
   </div>
+  <div class="modal fade" id="editJobModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">编辑职位</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form @submit.prevent="submitEditJob">
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label>职位名称</label>
+                  <input type="text" class="form-control" v-model="editJobForm.job_title" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label>城市</label>
+                  <input type="text" class="form-control" v-model="editJobForm.city" required>
+                </div>
+                <div class="col-md-3 mb-3">
+                  <label>学历要求</label>
+                  <select class="form-select" v-model="editJobForm.education_req">
+                    <option>本科</option><option>硕士</option><option>大专</option><option>不限</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label>经验要求</label>
+                  <select class="form-select" v-model="editJobForm.exp_req">
+                    <option>不限</option><option>1年以内</option><option>1-3年</option><option>3-5年</option><option>5年以上</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label>职位标签（用逗号分隔）</label>
+                  <input type="text" class="form-control" v-model="editJobForm.job_tags" required>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label>薪资范围 (k)</label>
+                  <div class="input-group">
+                    <input type="number" class="form-control" v-model="editJobForm.salary_min">
+                    <span class="input-group-text">-</span>
+                    <input type="number" class="form-control" v-model="editJobForm.salary_max">
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label>职位类型</label>
+                   <select class="form-select" v-model="editJobForm.job_type">
+                    <option value="全职">全职</option><option value="实习">实习</option><option value="兼职">兼职</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label>职位描述</label>
+                <textarea class="form-control" rows="5" v-model="editJobForm.description" required></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+              <button type="submit" class="btn btn-primary">💾 保存修改</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { Modal } from 'bootstrap'
 import axios from 'axios'
 
 // 修改：默认显示"企业信息"页面
@@ -272,6 +357,46 @@ const fetchMyJobs = async () => {
     if (error.response && error.response.status === 401) {
       alert('登录已过期，请重新登录！')
     }
+  }
+}
+
+
+// 1. 定义编辑表单的数据结构
+const editJobForm = reactive({
+  id: null,
+  job_title: '', city: '', salary_min: 0, salary_max: 0,
+  education_req: '', exp_req: '', job_tags: '',
+  job_type: '', description: ''
+})
+
+let editModalInstance = null
+
+// 2. 点击编辑按钮，打开弹窗并填充数据
+const openEditModal = (job) => {
+  // 把当前点击的 job 数据浅拷贝给编辑表单
+  Object.assign(editJobForm, job)
+
+  // 初始化并显示弹窗
+  if (!editModalInstance) {
+    editModalInstance = new Modal(document.getElementById('editJobModal'))
+  }
+  editModalInstance.show()
+}
+
+// 3. 提交修改请求到后端
+const submitEditJob = async () => {
+  try {
+    // 调用后端的 JobDetailView 进行 PATCH 更新
+    await axios.patch(`http://127.0.0.1:8000/api/jobs/${editJobForm.id}/`, editJobForm, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    alert('✅ 职位信息修改成功！')
+    editModalInstance.hide() // 关闭弹窗
+    fetchMyJobs() // 刷新列表，显示最新数据
+  } catch (error) {
+    console.error('修改失败:', error)
+    alert('❌ 修改失败: ' + (error.response?.data?.detail || '请检查填写内容'))
   }
 }
 

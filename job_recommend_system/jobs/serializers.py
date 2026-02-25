@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Job
+from .models import Job,JobCollection
 from rest_framework.validators import UniqueValidator
 
 
@@ -18,3 +18,13 @@ class JobSerializer(serializers.ModelSerializer):
         fields = '__all__'
         # 发布者ID和创建时间由后台自动处理，前端只读
         read_only_fields = ('recruiter', 'create_time', 'status')
+
+# 职位收藏序列化器
+class JobCollectionSerializer(serializers.ModelSerializer):
+    # 嵌套一个 JobSerializer，这样前端获取收藏列表时，能直接拿到公司的名称、薪资等职位详细信息
+    job_info = JobSerializer(source='job', read_only=True)
+
+    class Meta:
+        model = JobCollection
+        fields = ['id', 'job', 'job_info', 'collect_time']
+        read_only_fields = ['seeker', 'collect_time']

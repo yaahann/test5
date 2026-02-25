@@ -1,7 +1,7 @@
-from rest_framework import generics, permissions
-from .models import Job
-from .serializers import JobSerializer
-from users.models import Recruiter
+from rest_framework import generics, permissions,status
+from .models import Job,JobCollection
+from .serializers import JobSerializer,JobCollectionSerializer
+from users.models import Recruiter,JobSeeker
 from rest_framework.views import APIView # 引入 APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -96,3 +96,45 @@ class JobStatusUpdateView(APIView):
             return Response({"message": "状态已更新"})
 
         return Response({"detail": "参数错误"}, status=400)
+
+
+# 5.职位收藏视图
+class JobCollectionView(generics.ListCreateAPIView):
+    serializer_class = JobCollectionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # 获取当前求职者的收藏列表
+        try:
+            seeker = JobSeeker.objects.get(user=self.request.user)
+            return JobCollection.objects.filter(seeker=seeker).order_by('-collect_time')
+        except JobSeeker.DoesNotExist:
+            return JobCollection.objects.none()
+
+    def create(self, request, *args, **kwargs):
+        # 验证是否为求职者
+        try:
+            seeker = JobSeeker.objects.get(user=request.user)
+        except JobSeeker.DoesNotExist:
+            return Response({"detail": "只有求职者可以收藏职位"}, status=status.HTTP_403_FORBIDDEN)
+
+        job_id = request.data.get('job')
+        if not job_id:
+            return Response({"detail": "缺少 job 参数"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 校验职位是否存在
+        try:
+            Job.objects.get(id=job_id)
+        except Job.DoesNotExist:
+            return Response({"detail": "职位不存在"}, status=status.HTTP_404_NOT_FOUND)
+
+        # get_or_create 逻辑：如果有记录则获取，没有则创建
+        collection, created = JobCollection.objects.get_or_create(seeker=seeker, job_id=job_id)
+
+        if not created:
+            # 取消收藏
+            collection.delete()
+            return Response({"message": "已取消收藏", "is_collected": False}, status=status.HTTP_200_OK)
+        else:
+            # 收藏成功（补全这个分支的响应）
+            return Response({"message": "收藏成功", "is_collected": True}, status=status.HTTP_201_CREATED)

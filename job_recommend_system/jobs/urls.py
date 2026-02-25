@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import JobListCreateView, JobDetailView,RecruiterJobListView,JobStatusUpdateView
+from .views import JobListCreateView, JobDetailView,RecruiterJobListView,JobStatusUpdateView,JobCollectionView
 
 
 urlpatterns = [
@@ -12,4 +12,6 @@ urlpatterns = [
     path('recruiter/my-jobs/', RecruiterJobListView.as_view(), name='recruiter_jobs'),
 
     path('<int:pk>/status/', JobStatusUpdateView.as_view(), name='job_status'),
+
+    path('collection/', JobCollectionView.as_view(), name='job_collection'),
 ]
