@@ -45,12 +45,25 @@ const handleLogin = async () => {
       password: password.value
     })
 
-    // 🟢 关键修改：使用 Store 的 action 来登录
-    // 这行代码执行后，App.vue 里的导航栏会瞬间自动更新！
+    // 使用 Store 的 action 来登录,App.vue 里的导航栏会瞬间自动更新！
     userStore.login(response.data)
 
     alert('登录成功！')
     router.push('/home')
+
+    // 2. 🟢 从后端返回的数据中获取角色类型
+    const role = response.data.role_type
+
+    // 3. 🟢 根据角色进行跳转
+    if (role === 1) {
+      router.push('/home')                 // 求职者去首页
+    } else if (role === 2) {
+      router.push('/recruiter/dashboard')  // 招聘者去企业后台
+    } else if (role === 0) {
+      router.push('/admin/dashboard')                // 管理员去管理后台
+    } else {
+      router.push('/home')
+    }
 
   } catch (error) {
     console.error(error)

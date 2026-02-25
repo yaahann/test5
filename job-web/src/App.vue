@@ -63,8 +63,15 @@ const userStore = useUserStore()
 
 const goToDashboard = () => {
   const role = localStorage.getItem('role_type')
-  if (role == '2') router.push('/recruiter/dashboard')
-  else router.push('/seeker/dashboard')
+  if (role == '0') {
+    router.push('/admin/dashboard') // 管理员跳转到 Admin 后台
+  } else if (role == '2') {
+    // 请确保这里的路径跟你 router/index.js 里配的招聘者路径一致
+    // 可能是 /recruiter/dashboard 或 /recruiter-dashboard
+    router.push('/recruiter/dashboard')
+  } else {
+    router.push('/seeker/dashboard') // 求职者
+  }
 }
 
 // 这里的 logout 直接调用仓库的方法

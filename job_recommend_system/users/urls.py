@@ -1,8 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-# 确保这里引入了 MyTokenObtainPairView 和 JobSeekerDetailView
 from .views import RegisterView, MyTokenObtainPairView, JobSeekerDetailView
-from .views import PublicCompanyListView, RecruiterDetailView,PublicCompanyDetailView
+from .views import PublicCompanyListView, RecruiterDetailView,PublicCompanyDetailView,AdminPendingRecruitersView,AdminAuditRecruiterView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -12,4 +11,6 @@ urlpatterns = [
     path('recruiter/profile/', RecruiterDetailView.as_view(), name='recruiter-profile'),
     path('companies/', PublicCompanyListView.as_view(), name='public_companies'),
     path('companies/<int:pk>/', PublicCompanyDetailView.as_view(), name='public-company-detail'),
+    path('admin/recruiters/pending/', AdminPendingRecruitersView.as_view()),
+    path('admin/recruiters/<int:pk>/audit/', AdminAuditRecruiterView.as_view()),
 ]

@@ -9,6 +9,7 @@ import JobListView from '../views/JobListView.vue'
 import CompanyListView from '../views/CompanyListView.vue'
 import CompanyDetailView from '../views/CompanyDetailView.vue'
 import NewsView from '../views/NewsView.vue'
+import AdminDashboard from '../views/AdminDashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -60,6 +61,8 @@ const router = createRouter({
     { path: '/companies/:id', name: 'company-detail', component: CompanyDetailView },
 
     { path: '/news', name: 'news', component: NewsView },
+
+    {path: '/admin/dashboard', name: 'admin-dashboard', component: AdminDashboard},
 
   ]
 })

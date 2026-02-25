@@ -42,8 +42,12 @@ class JobListCreateView(generics.ListCreateAPIView):
             # 如果找不到，返回一个清晰的错误给前端，而不是直接 500
             from rest_framework.exceptions import ValidationError
             raise ValidationError("您的招聘者资料不完整，请先完善企业信息。")
+        # 检查企业资质审核状态
+        if recruiter_profile.audit_status != 1:  # 1 代表审核通过
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("您的企业资质尚未通过审核，暂时无法发布新职位。")
 
-        serializer.save(recruiter=recruiter_profile, status=1)
+        serializer.save(recruiter=recruiter_profile, status=0)
 
 
 # 2. 职位详情与操作视图 (查看/修改/删除)
@@ -138,3 +142,31 @@ class JobCollectionView(generics.ListCreateAPIView):
         else:
             # 收藏成功（补全这个分支的响应）
             return Response({"message": "收藏成功", "is_collected": True}, status=status.HTTP_201_CREATED)
+
+# 6.获取待审核职位列表
+class AdminPendingJobsView(generics.ListAPIView):
+    queryset = Job.objects.filter(status=0).order_by('-create_time')
+    serializer_class = JobSerializer
+    # 同样使用上面自定义的 IsAdminUser (需要你把 IsAdminUser 类也复制到这个文件顶部)
+    permission_classes = [permissions.IsAuthenticated]  # 为了简便，这里你也可以直接在 get_queryset 里判断 role_type
+
+    def get_queryset(self):
+        if self.request.user.role_type != 0:
+            return Job.objects.none()
+        return super().get_queryset()
+
+# 7.职位审核操作
+class AdminAuditJobView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
+        if request.user.role_type != 0:
+            return Response({"detail": "无权操作"}, status=403)
+
+        job = get_object_or_404(Job, pk=pk)
+        new_status = request.data.get('status')
+        if new_status in [1, 2]:  # 1通过(招聘中) 2拒绝(已下架)
+            job.status = new_status
+            job.save()
+            return Response({"message": "职位审核完成"})
+        return Response({"detail": "状态参数错误"}, status=400)

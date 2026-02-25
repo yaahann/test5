@@ -1,5 +1,8 @@
 from rest_framework import generics, permissions
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from .models import User, JobSeeker , Recruiter
 from .serializers import RegisterSerializer, MyTokenObtainPairSerializer, JobSeekerSerializer,RecruiterSerializer
 # 1. 注册接口
@@ -48,4 +51,26 @@ class PublicCompanyDetailView(generics.RetrieveAPIView):
     serializer_class = RecruiterSerializer
     permission_classes = [permissions.AllowAny] # 允许不登录访问
 
+# 1. 定义一个通用的管理员权限校验类
+class IsAdminUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.role_type == 0)
 
+# 2. 获取待审核企业列表
+class AdminPendingRecruitersView(generics.ListAPIView):
+    queryset = Recruiter.objects.filter(audit_status=0).order_by('-id')
+    serializer_class = RecruiterSerializer
+    permission_classes = [IsAdminUser]
+
+# 3. 企业审核操作 (通过/拒绝)
+class AdminAuditRecruiterView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request, pk):
+        recruiter = get_object_or_404(Recruiter, pk=pk)
+        new_status = request.data.get('audit_status')
+        if new_status in [1, 2]:  # 1通过 2拒绝
+            recruiter.audit_status = new_status
+            recruiter.save()
+            return Response({"message": "企业审核完成"})
+        return Response({"detail": "状态参数错误"}, status=400)

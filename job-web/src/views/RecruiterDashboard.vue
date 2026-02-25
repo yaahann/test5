@@ -65,6 +65,19 @@
               <textarea class="form-control" rows="4" v-model="profileForm.description" placeholder="请输入公司简介，向求职者展示企业的优势与特色..."></textarea>
             </div>
 
+            <div class="alert mb-4" :class="auditStatus === 1 ? 'alert-success' : (auditStatus === 2 ? 'alert-danger' : 'alert-warning')">
+              <strong>当前资质认证状态：</strong>
+              {{ auditStatus === 1 ? '✅ 已通过认证' : (auditStatus === 2 ? '❌ 认证被拒绝，请重新上传资质' : '⏳ 待审核中') }}
+            </div>
+
+            <div class="mb-4">
+               <label class="form-label">营业执照 / 认证文件</label>
+               <input type="file" class="form-control" @change="e => licenseFile = e.target.files[0]">
+               <div v-if="licenseUrl" class="mt-2 text-muted small">
+                 📄 当前已上传：<a :href="licenseUrl" target="_blank">点击查看文件</a>
+             </div>
+            </div>
+
             <button type="submit" class="btn btn-primary">💾 保存修改</button>
           </form>
         </div>
@@ -72,6 +85,9 @@
         <div v-if="currentTab === 'post'">
           <h4>发布新职位</h4>
           <hr>
+          <div v-if="auditStatus !== 1" class="alert alert-danger">
+            ⚠️ 您的企业资质尚未通过审核，暂时无法发布职位。请先在【企业信息完善】中上传真实有效的认证文件并等待管理员审核。
+          </div>
           <form @submit.prevent="createJob">
             <div class="row">
               <div class="col-md-6 mb-3">
@@ -296,6 +312,9 @@ const jobForm = reactive({
   job_tags: '', job_type: '全职', description: ''
 })
 
+const auditStatus = ref(0)
+const licenseUrl = ref('')
+let licenseFile = null
 // 新增：获取企业资料
 const fetchProfile = async () => {
   if (!token) return;
@@ -309,6 +328,8 @@ const fetchProfile = async () => {
     profileForm.company_scale = res.data.company_scale || ''
     profileForm.company_addr = res.data.company_addr || ''
     profileForm.description = res.data.description || ''
+    auditStatus.value = res.data.audit_status
+    licenseUrl.value = res.data.license || ''
   } catch (error) {
     console.error('获取企业资料失败:', error)
   }
@@ -317,8 +338,22 @@ const fetchProfile = async () => {
 // 新增：更新企业资料
 const updateProfile = async () => {
   try {
+    // 因为有文件，必须用 FormData 而不能用普通 JSON 对象
+    const formData = new FormData()
+    formData.append('company_name', profileForm.company_name)
+    formData.append('industry', profileForm.industry)
+    formData.append('company_scale', profileForm.company_scale)
+    formData.append('company_addr', profileForm.company_addr)
+
+    // 如果用户新选了文件，才把它传给后端
+    if (licenseFile) {
+      formData.append('license', licenseFile)
+    }
     await axios.patch('http://127.0.0.1:8000/api/users/recruiter/profile/', profileForm, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data' // 必须声明为表单上传
+      }
     })
     alert('✅ 企业信息保存成功！')
   } catch (error) {
