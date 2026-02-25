@@ -59,6 +59,7 @@ class Recruiter(models.Model):
     company_name = models.CharField(max_length=100, verbose_name='公司名称',blank=True)
     company_scale = models.CharField(max_length=50, verbose_name='公司规模', blank=True)
     industry = models.CharField(max_length=50, verbose_name='所属行业', blank=True)
+    description = models.TextField(verbose_name='公司简介', null=True, blank=True)
     company_addr = models.CharField(max_length=255, verbose_name='企业地址', blank=True)
 
     # 营业执照等文件通常需要 FileField

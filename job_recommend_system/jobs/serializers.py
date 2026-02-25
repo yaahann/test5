@@ -7,6 +7,8 @@ from rest_framework.validators import UniqueValidator
 class JobSerializer(serializers.ModelSerializer):
     # 显示发布者的公司名称（只读），方便前端展示
     company_name = serializers.CharField(source='recruiter.company_name', read_only=True)
+    # 显式地把关联的招聘者（公司）的 ID 传递给前端
+    recruiter_id = serializers.IntegerField(source='recruiter.id', read_only=True)
     # 自动关联当前登录的招聘者（用户必须是Recruiter类型）
     recruiter = serializers.HiddenField(
         default=serializers.CurrentUserDefault())

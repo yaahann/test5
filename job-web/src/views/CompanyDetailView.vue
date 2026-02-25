@@ -1,14 +1,29 @@
 <template>
   <div class="container mt-4" v-if="company">
+    <button class="btn btn-outline-secondary mb-3" @click="$router.back()">&lt; 返回</button>
     <div class="card border-0 shadow-sm bg-white mb-4">
       <div class="card-body p-5 text-center">
         <div class="display-1 mb-3">🏢</div>
-        <h1 class="fw-bold">{{ company.company_name }}</h1>
-        <p class="lead text-muted">{{ company.address || '地址未知' }}</p>
-        <hr class="my-4" style="width: 100px; margin: 0 auto;">
-        <p class="text-secondary" style="max-width: 800px; margin: 0 auto;">
-          {{ company.description || '这家公司很懒，暂时没有详细介绍。' }}
+        <h1 class="fw-bold">{{ company.company_name || '未命名公司' }}</h1>
+
+        <p class="lead text-muted">
+          📍 {{ company.company_addr || '企业地址未完善' }}
         </p>
+
+        <div class="mt-3 mb-3">
+          <span class="badge bg-primary me-2 px-3 py-2 fs-6" v-if="company.industry">
+            {{ company.industry }}
+          </span>
+          <span class="badge bg-info text-dark me-2 px-3 py-2 fs-6" v-if="company.company_scale">
+            {{ company.company_scale }}
+          </span>
+        </div>
+
+        <hr class="my-4" style="width: 100px; margin: 0 auto;">
+
+        <div class="text-secondary text-start" style="max-width: 800px; margin: 0 auto; white-space: pre-wrap; line-height: 1.8;">
+          {{ company.description || '这家公司很懒，暂时没有详细介绍。' }}
+        </div>
       </div>
     </div>
 
@@ -51,11 +66,22 @@ onMounted(async () => {
   })
   company.value = compRes.data
 
-  // 2. 获取该公司下的职位 (使用我们刚才在后端加的过滤器)
+  // 2. 获取该公司下的职位
   const jobRes = await axios.get('http://127.0.0.1:8000/api/jobs/', {
     headers: { 'Authorization': `Bearer ${token}` },
-    params: { recruiter_id: compId } // 传参过滤
+    params: { recruiter_id: compId }
   })
   jobs.value = jobRes.data
 })
 </script>
+
+<style scoped>
+/* 悬浮特效 */
+.card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+}
+</style>

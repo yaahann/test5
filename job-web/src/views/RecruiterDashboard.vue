@@ -60,6 +60,11 @@
               <input type="text" class="form-control" v-model="profileForm.company_addr" placeholder="例如：上海市浦东新区xxx街道xxx号">
             </div>
 
+            <div class="mb-4">
+              <label class="form-label">公司简介</label>
+              <textarea class="form-control" rows="4" v-model="profileForm.description" placeholder="请输入公司简介，向求职者展示企业的优势与特色..."></textarea>
+            </div>
+
             <button type="submit" class="btn btn-primary">💾 保存修改</button>
           </form>
         </div>
@@ -196,7 +201,8 @@ const profileForm = reactive({
   company_name: '',
   industry: '',
   company_scale: '',
-  company_addr: ''
+  company_addr: '',
+  description: ''
 })
 
 const jobForm = reactive({
@@ -217,6 +223,7 @@ const fetchProfile = async () => {
     profileForm.industry = res.data.industry || ''
     profileForm.company_scale = res.data.company_scale || ''
     profileForm.company_addr = res.data.company_addr || ''
+    profileForm.description = res.data.description || ''
   } catch (error) {
     console.error('获取企业资料失败:', error)
   }
