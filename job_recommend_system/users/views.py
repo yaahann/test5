@@ -23,13 +23,8 @@ class JobSeekerDetailView(generics.RetrieveUpdateAPIView):
         obj, created = JobSeeker.objects.get_or_create(user=self.request.user)
         return obj
 
-# 4.公开的公司列表 (用于"公司"板块)
-class PublicCompanyListView(generics.ListAPIView):
-    queryset = Recruiter.objects.all()
-    serializer_class = RecruiterSerializer # 我们需要确保 serializers.py 里有这个
-    permission_classes = [permissions.AllowAny] # 允许任何人访问
 
-# 5.招聘者公司详情接口 （查看+修改）
+# 4.招聘者公司详情接口 （查看+修改）
 class RecruiterDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = RecruiterSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -40,9 +35,17 @@ class RecruiterDetailView(generics.RetrieveUpdateAPIView):
         obj, created = Recruiter.objects.get_or_create(user=self.request.user)
         return obj
 
+# 5.公开的公司列表 (用于"公司"板块)
+class PublicCompanyListView(generics.ListAPIView):
+    queryset = Recruiter.objects.all()
+    serializer_class = RecruiterSerializer # 我们需要确保 serializers.py 里有这个
+    permission_classes = [permissions.AllowAny] # 允许任何人访问
+
+
 # 6.公开的公司详情 (用于"企业详情页")
 class PublicCompanyDetailView(generics.RetrieveAPIView):
     queryset = Recruiter.objects.all()
     serializer_class = RecruiterSerializer
     permission_classes = [permissions.AllowAny] # 允许不登录访问
+
 
