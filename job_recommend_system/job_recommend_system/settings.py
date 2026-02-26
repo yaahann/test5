@@ -152,6 +152,17 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+from datetime import timedelta
 
+# JWT 配置参数
+SIMPLE_JWT = {
+    # 将 access_token 的有效期延长到 7 天
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    # 将 refresh_token 的有效期延长到 14 天
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=14),
+
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 # 允许跨域
 CORS_ALLOW_ALL_ORIGINS = True

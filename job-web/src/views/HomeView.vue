@@ -45,15 +45,23 @@
       </div>
 
       <div class="mt-4 mb-5">
-        <h3>📰 最新资讯</h3>
+        <div class="d-flex justify-content-between align-items-center">
+          <h3>📰 最新资讯</h3>
+          <router-link to="/news" class="text-decoration-none">查看更多 &gt;</router-link>
+        </div>
         <div class="row mt-3">
-          <div class="col-md-4" v-for="i in 3" :key="i">
-            <div class="card border-0 bg-light">
+          <div class="col-md-4 mb-3" v-for="news in latestNews" :key="news.id">
+            <div class="card border-0 bg-light h-100 shadow-sm" style="cursor: pointer;" @click="$router.push(`/news/${news.id}`)">
               <div class="card-body">
-                <h6 class="fw-bold">2026春招求职趋势报告发布</h6>
-                <p class="small text-muted mb-0">互联网行业回暖，人工智能岗位需求激增...</p>
+                <h6 class="fw-bold text-truncate">{{ news.title }}</h6>
+                <p class="small text-muted mb-0" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                  {{ news.summary }}
+                </p>
               </div>
             </div>
+          </div>
+          <div v-if="latestNews.length === 0" class="col-12 text-muted text-center py-4">
+             暂无资讯更新
           </div>
         </div>
       </div>
@@ -72,6 +80,7 @@ const router = useRouter()
 const keyword = ref('')
 const hotJobs = ref([])
 const hotCompanies = ref([])
+const latestNews = ref([])
 
 const handleSearch = () => {
   // 跳转到职位列表页并带上参数
@@ -97,6 +106,9 @@ onMounted(async () => {
     // 获取公司 (users/urls.py 里配置的 public_companies 应该是 AllowAny)
     const compRes = await axios.get('http://127.0.0.1:8000/api/users/companies/', config)
     hotCompanies.value = compRes.data.slice(0, 4)
+    // 获取最新3条资讯
+    const newsRes = await axios.get('http://127.0.0.1:8000/api/jobs/news/')
+    latestNews.value = newsRes.data.slice(0, 3)
   } catch (e) {
     console.error(e)
   }

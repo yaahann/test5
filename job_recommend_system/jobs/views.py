@@ -1,6 +1,6 @@
 from rest_framework import generics, permissions,status
-from .models import Job,JobCollection
-from .serializers import JobSerializer,JobCollectionSerializer
+from .models import Job,JobCollection,News
+from .serializers import JobSerializer,JobCollectionSerializer,NewsSerializer
 from users.models import Recruiter,JobSeeker
 from rest_framework.views import APIView # 引入 APIView
 from rest_framework.response import Response
@@ -23,10 +23,29 @@ class JobListCreateView(generics.ListCreateAPIView):
         queryset = Job.objects.filter(status=1).order_by('-create_time')
 
         # 2. 如果前端传了 recruiter_id，就只看这个公司的
-        # 例如：/api/jobs/?recruiter_id=5
         recruiter_id = self.request.query_params.get('recruiter_id')
         if recruiter_id:
             queryset = queryset.filter(recruiter_id=recruiter_id)
+
+        # 城市筛选 (模糊匹配)
+        city = self.request.query_params.get('city')
+        if city and city != '全部':
+            queryset = queryset.filter(city__icontains=city)
+
+        # 学历筛选 (精确匹配)
+        education_req = self.request.query_params.get('education_req')
+        if education_req and education_req != '不限':
+            queryset = queryset.filter(education_req=education_req)
+
+        # 经验筛选 (精确匹配)
+        exp_req = self.request.query_params.get('exp_req')
+        if exp_req and exp_req != '不限':
+            queryset = queryset.filter(exp_req=exp_req)
+
+        # 职位类型筛选 (精确匹配)
+        job_type = self.request.query_params.get('job_type')
+        if job_type and job_type != '全部':
+            queryset = queryset.filter(job_type=job_type)
 
         return queryset
 
@@ -187,3 +206,21 @@ class AdminAllJobsView(generics.ListAPIView):
         if self.request.user.role_type != 0:
             return Job.objects.none()
         return super().get_queryset()
+
+# 公开的资讯列表
+class NewsListView(generics.ListAPIView):
+    queryset = News.objects.all().order_by('-publish_time')
+    serializer_class = NewsSerializer
+    permission_classes = [permissions.AllowAny] # 允许任何人免登录查看
+# 公开的单条资讯详情接口
+class NewsDetailAPIView(generics.RetrieveAPIView):
+    queryset = News.objects.all()
+    serializer_class = NewsSerializer
+    permission_classes = [permissions.AllowAny] # 允许免登录查看
+
+    # 重写 get_object 方法，每次被请求时，阅读量自动 +1
+    def get_object(self):
+        obj = super().get_object()
+        obj.views += 1
+        obj.save()
+        return obj

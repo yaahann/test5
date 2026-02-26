@@ -53,3 +53,18 @@ class JobCollection(models.Model):
         verbose_name_plural = verbose_name
         # 联合唯一索引，防止重复收藏同一个职位
         unique_together = ('seeker', 'job')
+
+# 求职资讯表
+class News(models.Model):
+    title = models.CharField(max_length=200, verbose_name='标题')
+    summary = models.CharField(max_length=255, verbose_name='摘要', blank=True)
+    content = models.TextField(verbose_name='正文内容')
+    views = models.IntegerField(default=0, verbose_name='阅读量')
+    publish_time = models.DateTimeField(auto_now_add=True, verbose_name='发布时间')
+
+    class Meta:
+        verbose_name = '求职资讯'
+        verbose_name_plural = verbose_name
+
+    def __str__(self):
+        return self.title

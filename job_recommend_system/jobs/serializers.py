@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Job,JobCollection
+from .models import Job,JobCollection,News
 from rest_framework.validators import UniqueValidator
 
 
@@ -28,3 +28,11 @@ class JobCollectionSerializer(serializers.ModelSerializer):
         model = JobCollection
         fields = ['id', 'job', 'job_info', 'collect_time']
         read_only_fields = ['seeker', 'collect_time']
+
+
+class NewsSerializer(serializers.ModelSerializer):
+    publish_time = serializers.DateTimeField(format="%Y-%m-%d", read_only=True)
+
+    class Meta:
+        model = News
+        fields = '__all__'
