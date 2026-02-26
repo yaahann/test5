@@ -1,7 +1,8 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import RegisterView, MyTokenObtainPairView, JobSeekerDetailView
-from .views import PublicCompanyListView, RecruiterDetailView,PublicCompanyDetailView,AdminPendingRecruitersView,AdminAuditRecruiterView
+from .views import RegisterView, MyTokenObtainPairView, JobSeekerDetailView,RecruiterDetailView
+from .views import (PublicCompanyListView,PublicCompanyDetailView,
+                    AdminPendingRecruitersView,AdminAuditRecruiterView,AdminStatsView,AdminAllSeekersView,AdminAllRecruitersView)
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -13,4 +14,7 @@ urlpatterns = [
     path('companies/<int:pk>/', PublicCompanyDetailView.as_view(), name='public-company-detail'),
     path('admin/recruiters/pending/', AdminPendingRecruitersView.as_view()),
     path('admin/recruiters/<int:pk>/audit/', AdminAuditRecruiterView.as_view()),
+    path('admin/stats/', AdminStatsView.as_view(), name='admin_stats'),
+    path('admin/seekers/all/', AdminAllSeekersView.as_view()),
+    path('admin/recruiters/all/', AdminAllRecruitersView.as_view()),
 ]

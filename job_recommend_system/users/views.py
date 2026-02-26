@@ -5,6 +5,8 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from .models import User, JobSeeker , Recruiter
 from .serializers import RegisterSerializer, MyTokenObtainPairSerializer, JobSeekerSerializer,RecruiterSerializer
+from jobs.models import Job
+from recruitment.models import Application
 # 1. 注册接口
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -81,3 +83,44 @@ class AdminAuditRecruiterView(APIView):
             recruiter.save()
             return Response({"message": "企业审核完成"})
         return Response({"detail": "状态参数错误"}, status=400)
+
+# 平台数据统计大盘接口
+class AdminStatsView(APIView):
+    # 复用之前写的 IsAdminUser 权限类
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        # 1. 用户相关统计
+        total_users = User.objects.count()
+        total_seekers = JobSeeker.objects.count()
+        total_recruiters = Recruiter.objects.count()
+
+        # 2. 职位相关统计
+        total_jobs = Job.objects.count()
+        active_jobs = Job.objects.filter(status=1).count()  # 招聘中的职位
+        pending_jobs = Job.objects.filter(status=0).count()  # 待审核的职位
+
+        # 3. 互动数据统计
+        total_applications = Application.objects.count()  # 简历投递总次数
+
+        return Response({
+            "total_users": total_users,
+            "total_seekers": total_seekers,
+            "total_recruiters": total_recruiters,
+            "total_jobs": total_jobs,
+            "active_jobs": active_jobs,
+            "pending_jobs": pending_jobs,
+            "total_applications": total_applications
+        })
+
+# 获取所有求职者用于看板
+class AdminAllSeekersView(generics.ListAPIView):
+    queryset = JobSeeker.objects.all().order_by('-id')
+    serializer_class = JobSeekerSerializer
+    permission_classes = [IsAdminUser]
+
+# 获取所有企业（无论状态）用于看板
+class AdminAllRecruitersView(generics.ListAPIView):
+    queryset = Recruiter.objects.all().order_by('-id')
+    serializer_class = RecruiterSerializer
+    permission_classes = [IsAdminUser]

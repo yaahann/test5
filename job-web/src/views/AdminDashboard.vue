@@ -18,6 +18,9 @@
             📋 职位发布审核
             <span v-if="pendingJobs.length > 0" class="badge bg-danger ms-2">{{ pendingJobs.length }}</span>
           </button>
+          <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'stats' }" @click="currentTab = 'stats'">
+            📊 数据监控大盘
+          </button>
         </div>
       </div>
 
@@ -70,6 +73,144 @@
           </div>
         </div>
 
+        <div v-if="currentTab === 'stats'">
+          <h4>数据监控大盘</h4>
+          <hr>
+
+          <div class="row mt-4" v-if="sysStats">
+            <div class="col-md-4 mb-4">
+               <div class="card text-white bg-primary h-100 shadow-sm border-0">
+                  <div class="card-body">
+                    <h6 class="card-title text-white-50">👥 平台总用户数</h6>
+                    <h2 class="fw-bold mb-0 mt-2">{{ sysStats.total_users }} <small class="fs-6 fw-normal text-white-50">人</small></h2>
+                  </div>
+               </div>
+            </div>
+            <div class="col-md-4 mb-4">
+               <div class="card text-white bg-info h-100 shadow-sm border-0"
+                    style="cursor: pointer; transition: transform 0.2s;"
+                    @click="currentTab = 'all_seekers'"
+                    onmouseover="this.style.transform='scale(1.05)'"
+                    onmouseout="this.style.transform='scale(1)'">
+                  <div class="card-body">
+                    <h6 class="card-title text-white-50">🧑‍🎓 注册求职者 (点击查看)</h6>
+                    <h2 class="fw-bold mb-0 mt-2">{{ sysStats.total_seekers }} <small class="fs-6 fw-normal text-white-50">人</small></h2>
+                  </div>
+               </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+               <div class="card text-white bg-secondary h-100 shadow-sm border-0"
+                    style="cursor: pointer; transition: transform 0.2s;"
+                    @click="currentTab = 'all_recruiters'"
+                    onmouseover="this.style.transform='scale(1.05)'"
+                    onmouseout="this.style.transform='scale(1)'">
+                  <div class="card-body">
+                    <h6 class="card-title text-white-50">🏢 入驻企业数 (点击查看)</h6>
+                    <h2 class="fw-bold mb-0 mt-2">{{ sysStats.total_recruiters }} <small class="fs-6 fw-normal text-white-50">家</small></h2>
+                  </div>
+               </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+               <div class="card text-dark bg-light h-100 shadow-sm border-0 border-start border-4 border-success"
+                    style="cursor: pointer; transition: transform 0.2s;"
+                    @click="currentTab = 'all_jobs'"
+                    onmouseover="this.style.transform='scale(1.05)'"
+                    onmouseout="this.style.transform='scale(1)'">
+                  <div class="card-body">
+                    <h6 class="card-title text-muted">✅ 职位总数 (点击查看)</h6>
+                    <h2 class="fw-bold text-success mb-0 mt-2">{{ sysStats.total_jobs }} <small class="fs-6 fw-normal text-muted">个</small></h2>
+                  </div>
+               </div>
+            </div>
+            <div class="col-md-4 mb-4">
+               <div class="card text-dark bg-light h-100 shadow-sm border-0 border-start border-4 border-warning">
+                  <div class="card-body">
+                    <h6 class="card-title text-muted">⏳ 待审职位</h6>
+                    <h2 class="fw-bold text-warning mb-0 mt-2">{{ sysStats.pending_jobs }} <small class="fs-6 fw-normal text-muted">个</small></h2>
+                  </div>
+               </div>
+            </div>
+            <div class="col-md-4 mb-4">
+               <div class="card text-white bg-danger h-100 shadow-sm border-0">
+                  <div class="card-body">
+                    <h6 class="card-title text-white-50">🚀 平台总投递次数</h6>
+                    <h2 class="fw-bold mb-0 mt-2">{{ sysStats.total_applications }} <small class="fs-6 fw-normal text-white-50">次</small></h2>
+                  </div>
+               </div>
+            </div>
+          </div>
+
+          <div v-else class="text-center text-muted py-5">
+             <div class="spinner-border text-primary" role="status"></div>
+             <p class="mt-2">数据加载中...</p>
+          </div>
+        </div>
+
+        <div v-if="currentTab === 'all_seekers'">
+          <div class="d-flex justify-content-between mb-3">
+            <h4>🧑‍🎓 求职者管理</h4>
+            <button class="btn btn-sm btn-outline-secondary" @click="currentTab = 'stats'">返回大盘</button>
+          </div>
+          <table class="table table-hover bg-white shadow-sm rounded">
+            <thead class="table-light"><tr><th>ID</th><th>姓名</th><th>性别</th><th>学历</th><th>求职状态</th></tr></thead>
+            <tbody>
+              <tr v-for="user in allSeekers" :key="user.id">
+                <td>{{ user.id }}</td>
+                <td>{{ user.name || '未填' }}</td>
+                <td>{{ user.gender || '-' }}</td>
+                <td>{{ user.education || '-' }}</td>
+                <td><span class="badge bg-info">{{ user.job_status === 0 ? '待业' : '在职' }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="currentTab === 'all_recruiters'">
+          <div class="d-flex justify-content-between mb-3">
+            <h4>🏢 入驻企业管理</h4>
+            <button class="btn btn-sm btn-outline-secondary" @click="currentTab = 'stats'">返回大盘</button>
+          </div>
+          <table class="table table-hover bg-white shadow-sm rounded">
+            <thead class="table-light"><tr><th>公司名称</th><th>行业</th><th>规模</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr v-for="comp in allRecruiters" :key="comp.id">
+                <td>{{ comp.company_name || '未填' }}</td>
+                <td>{{ comp.industry || '-' }}</td>
+                <td>{{ comp.company_scale || '-' }}</td>
+                <td>
+                  <span class="badge" :class="comp.audit_status === 1 ? 'bg-success' : (comp.audit_status === 2 ? 'bg-danger' : 'bg-warning text-dark')">
+                    {{ comp.audit_status === 1 ? '通过' : (comp.audit_status === 2 ? '拒绝' : '待审') }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="currentTab === 'all_jobs'">
+          <div class="d-flex justify-content-between mb-3">
+            <h4>📋 全站职位管理</h4>
+            <button class="btn btn-sm btn-outline-secondary" @click="currentTab = 'stats'">返回大盘</button>
+          </div>
+          <table class="table table-hover bg-white shadow-sm rounded">
+            <thead class="table-light"><tr><th>职位名称</th><th>薪资</th><th>城市</th><th>状态</th></tr></thead>
+            <tbody>
+              <tr v-for="job in allJobs" :key="job.id">
+                <td><a href="#" @click.prevent="$router.push(`/jobs/${job.id}`)">{{ job.job_title }}</a></td>
+                <td class="text-danger">{{ job.salary_min }}-{{ job.salary_max }}k</td>
+                <td>{{ job.city }}</td>
+                <td>
+                  <span class="badge" :class="job.status === 1 ? 'bg-success' : (job.status === 2 ? 'bg-secondary' : 'bg-warning text-dark')">
+                    {{ job.status === 1 ? '招聘中' : (job.status === 2 ? '已下架' : '待审核') }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
       </div>
     </div>
   </div>
@@ -85,6 +226,9 @@ const currentTab = ref('recruiters')
 const pendingRecruiters = ref([])
 const pendingJobs = ref([])
 const token = localStorage.getItem('access_token')
+const allSeekers = ref([])
+const allRecruiters = ref([])
+const allJobs = ref([])
 
 // 获取待审核企业
 const fetchPendingRecruiters = async () => {
@@ -142,13 +286,53 @@ const getMediaUrl = (path) => {
   return `http://127.0.0.1:8000${path}`
 }
 
+
+// 新增存储统计数据的变量
+const sysStats = ref(null)
+
+// 新增获取统计数据的方法
+const fetchStats = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/users/admin/stats/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    sysStats.value = res.data
+  } catch (error) {
+    console.error('获取监控数据失败', error)
+  }
+}
+
+// 编写请求函数
+const fetchAllSeekers = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/users/admin/seekers/all/', { headers: { 'Authorization': `Bearer ${token}` } })
+    allSeekers.value = res.data
+  } catch (e) { console.error(e) }
+}
+const fetchAllRecruiters = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/users/admin/recruiters/all/', { headers: { 'Authorization': `Bearer ${token}` } })
+    allRecruiters.value = res.data
+  } catch (e) { console.error(e) }
+}
+const fetchAllJobs = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/jobs/admin/jobs/all/', { headers: { 'Authorization': `Bearer ${token}` } })
+    allJobs.value = res.data
+  } catch (e) { console.error(e) }
+}
+
 onMounted(() => {
   if (!token) {
     alert('请先登录！')
     router.push('/login')
     return
   }
+  fetchStats()
   fetchPendingRecruiters()
   fetchPendingJobs()
+  fetchAllSeekers()
+  fetchAllRecruiters()
+  fetchAllJobs()
 })
 </script>

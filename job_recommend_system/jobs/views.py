@@ -176,3 +176,14 @@ class AdminAuditJobView(APIView):
             job.save()
             return Response({"message": "职位审核完成"})
         return Response({"detail": "状态参数错误"}, status=400)
+
+# 获取所有职位（无论状态）用于看板
+class AdminAllJobsView(generics.ListAPIView):
+    queryset = Job.objects.all().order_by('-create_time')
+    serializer_class = JobSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.user.role_type != 0:
+            return Job.objects.none()
+        return super().get_queryset()
