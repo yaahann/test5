@@ -72,7 +72,7 @@
 
             <div class="mb-4">
                <label class="form-label">营业执照 / 认证文件</label>
-               <input type="file" class="form-control" @change="e => licenseFile = e.target.files[0]">
+               <input type="file" class="form-control" @change="handleLicenseChange">
                <div v-if="licenseUrl" class="mt-2 text-muted small">
                  📄 当前已上传：<a :href="licenseUrl" target="_blank">点击查看文件</a>
              </div>
@@ -142,7 +142,7 @@
         </div>
 
         <div v-if="currentTab === 'myjobs'">
-          <h4>已发布职位</h4>
+          <h4>职位管理</h4>
           <hr>
           <table class="table align-middle">
             <thead><tr><th>名称</th><th>发布时间</th><th>当前状态</th><th>操作</th></tr></thead>
@@ -151,9 +151,9 @@
                 <td>{{ job.job_title }}</td>
                 <td>{{ new Date(job.create_time).toLocaleDateString() }}</td>
                 <td>
-                  <span class="badge" :class="job.status === 1 ? 'bg-success' : 'bg-secondary'">
-                    {{ job.status === 1 ? '招聘中' : '已停止' }}
-                  </span>
+                  <span v-if="job.status === 0" class="badge bg-warning text-dark">⏳ 待审核</span>
+                  <span v-else-if="job.status === 1" class="badge bg-success">✅ 招聘中</span>
+                  <span v-else class="badge bg-secondary">⛔ 已下架/驳回</span>
                 </td>
                 <td>
                   <button class="btn btn-sm btn-outline-primary me-2" @click="openEditModal(job)">
@@ -162,9 +162,12 @@
                   <button v-if="job.status === 1" class="btn btn-sm btn-outline-danger" @click="toggleJobStatus(job.id, 2)">
                     ⛔ 停止招聘
                   </button>
-                  <button v-else class="btn btn-sm btn-outline-success" @click="toggleJobStatus(job.id, 1)">
-                    ✅ 恢复招聘
+                  <button v-else-if="job.status === 2" class="btn btn-sm btn-outline-success" @click="toggleJobStatus(job.id, 0)">
+                    🔄 重新提交审核
                   </button>
+                  <span v-else-if="job.status === 0" class="text-muted small">
+                    审核中不可操作
+                  </span>
                 </td>
               </tr>
             </tbody>
@@ -314,7 +317,12 @@ const jobForm = reactive({
 
 const auditStatus = ref(0)
 const licenseUrl = ref('')
-let licenseFile = null
+const licenseFile = ref(null)
+// 2. 新增一个专门捕获文件的函数
+const handleLicenseChange = (e) => {
+  licenseFile.value = e.target.files[0]
+  console.log("准备上传的资质文件:", licenseFile.value) // 你可以在F12控制台看到是否成功抓取到文件
+}
 // 新增：获取企业资料
 const fetchProfile = async () => {
   if (!token) return;
@@ -345,14 +353,14 @@ const updateProfile = async () => {
     formData.append('company_scale', profileForm.company_scale)
     formData.append('company_addr', profileForm.company_addr)
 
-    // 如果用户新选了文件，才把它传给后端
-    if (licenseFile) {
-      formData.append('license', licenseFile)
+    if (licenseFile.value) {
+      formData.append('license', licenseFile.value)
     }
-    await axios.patch('http://127.0.0.1:8000/api/users/recruiter/profile/', profileForm, {
+
+    await axios.patch('http://127.0.0.1:8000/api/users/recruiter/profile/', formData, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data' // 必须声明为表单上传
+        'Authorization': `Bearer ${token}`
+        // 让 axios 自己识别 FormData，浏览器会自动加上带 boundary 的 Content-Type！
       }
     })
     alert('✅ 企业信息保存成功！')

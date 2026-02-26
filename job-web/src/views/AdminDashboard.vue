@@ -3,12 +3,12 @@
     <nav class="navbar navbar-dark bg-dark mb-0">
       <div class="container">
         <span class="navbar-brand">🛡️ 平台管理中心 (Admin)</span>
-        <button class="btn btn-outline-light btn-sm" @click="logout">退出登录</button>
+        <button class="btn btn-outline-light btn-sm" @click="$router.push('/home')">返回首页</button>
       </div>
     </nav>
 
     <div class="d-flex" style="min-height: 100vh;">
-      <div class="bg-light border-end p-3" style="width: 250px;">
+      <div class="bg-light border-end p-3 flex-shrink-0" style="width: 250px;">
         <div class="list-group list-group-flush">
           <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'recruiters' }" @click="currentTab = 'recruiters'">
             🏢 企业资质审核
@@ -33,6 +33,15 @@
               <p class="text-muted mb-1">行业: {{ rec.industry || '未填' }} | 规模: {{ rec.company_scale || '未填' }}</p>
               <p class="text-muted small">地址: {{ rec.company_addr }}</p>
               <p class="bg-light p-2 rounded" style="white-space: pre-wrap;">简介: {{ rec.description || '无' }}</p>
+              <div v-if="rec.license" class="mb-3">
+                <span class="fw-bold">📎 资质文件：</span>
+                <a :href="getMediaUrl(rec.license)" target="_blank" class="btn btn-sm btn-outline-primary">
+                  📄 点击查看营业执照
+                </a>
+              </div>
+              <div v-else class="mb-3 text-danger small">
+                ⚠️ 该企业尚未上传任何资质认证文件！
+              </div>
               <div class="mt-3">
                 <button class="btn btn-success me-2" @click="auditRecruiter(rec.id, 1)">✅ 审核通过</button>
                 <button class="btn btn-danger" @click="auditRecruiter(rec.id, 2)">❌ 拒绝认证</button>
@@ -123,6 +132,14 @@ const logout = () => {
   localStorage.removeItem('access_token')
   localStorage.removeItem('role_type')
   router.push('/login')
+}
+
+// 辅助函数：处理媒体文件的绝对路径
+const getMediaUrl = (path) => {
+  if (!path) return '#'
+  if (path.startsWith('http')) return path
+  // 拼接 Django 后端地址
+  return `http://127.0.0.1:8000${path}`
 }
 
 onMounted(() => {

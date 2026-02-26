@@ -63,6 +63,10 @@ class JobDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Job.objects.filter(recruiter__user=self.request.user)
         return Job.objects.all()
 
+    # 但凡招聘者修改了职位信息，状态强制变为待审(0)
+    def perform_update(self, serializer):
+        serializer.save(status=0)
+
 
 # 3：招聘者查看自己发布的职位列表
 class RecruiterJobListView(generics.ListAPIView):
@@ -94,6 +98,8 @@ class JobStatusUpdateView(APIView):
         # 3. 修改状态
         # 前端传 { status: 2 } (2代表停止招聘，1代表招聘中)
         new_status = request.data.get('status')
+        if new_status == 1:
+            return Response({"detail": "职位必须经过管理员审核通过后才能上架，请提交审核"}, status=400)
         if new_status is not None:
             job.status = new_status
             job.save()

@@ -38,6 +38,13 @@ class RecruiterDetailView(generics.RetrieveUpdateAPIView):
         obj, created = Recruiter.objects.get_or_create(user=self.request.user)
         return obj
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        # 如果企业原本是被拒绝状态(2)，重新修改保存资料后，自动变回待审(0)
+        if instance.audit_status == 2:
+            instance.audit_status = 0
+            instance.save()
+
 # 5.公开的公司列表 (用于"公司"板块)
 class PublicCompanyListView(generics.ListAPIView):
     queryset = Recruiter.objects.all()
