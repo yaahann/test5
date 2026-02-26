@@ -39,7 +39,7 @@ class JobSeeker(models.Model):
     # [cite_start]关键字段：技能标签，用于推荐算法 [cite: 116]
     skills = models.CharField(max_length=255, verbose_name='技能标签', blank=True,
                               help_text='多个标签用逗号分隔，如: Python,Vue')
-
+    exp_city = models.CharField(max_length=50, verbose_name='期望工作城市',blank=True, default='')
     job_status = models.SmallIntegerField(default=0, verbose_name='求职状态', choices=((0, '待业'), (1, '在职')))
     experience = models.TextField(verbose_name='工作经历', blank=True)
 

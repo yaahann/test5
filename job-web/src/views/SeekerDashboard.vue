@@ -81,6 +81,11 @@
               <input type="text" class="form-control" v-model="profileForm.skills" placeholder="例如：Python, Vue, MySQL">
             </div>
 
+            <div class="col-md-6 mb-3">
+                <label class="form-label">期望工作城市</label>
+                <input type="text" class="form-control" v-model="profileForm.exp_city" placeholder="例如：北京、上海、广州">
+              </div>
+
             <div class="mb-3">
               <label class="form-label">工作/实习经历</label>
               <textarea class="form-control" rows="4" v-model="profileForm.experience" placeholder="请详细描述您的工作经历..."></textarea>
@@ -179,11 +184,12 @@ const profileForm = reactive({
   name: '',
   gender: '男',
   education: '本科',
-  major: '',           // 新增
-  skills: '',          // 新增
-  birth_date: '',      // 新增
-  experience: '', // 新增
-  job_status: '待业'        // 新增
+  major: '',
+  skills: '',
+  birth_date: '',
+  exp_city:'',
+  experience: '',
+  job_status: '待业'
 })
 
 const resumeForm = reactive({ title: '', file: null })
@@ -200,8 +206,6 @@ const fetchProfile = async () => {
 }
 
 // 更新个人资料
-// 修改 src/views/SeekerDashboard.vue
-
 const updateProfile = async () => {
   try {
     // 注意：建议把 put 改为 patch (下面会解释为什么)
