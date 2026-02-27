@@ -37,6 +37,7 @@ class JobSeeker(models.Model):
     major = models.CharField(max_length=50, verbose_name='专业', blank=True)
 
     # [cite_start]关键字段：技能标签，用于推荐算法 [cite: 116]
+    exp_job = models.CharField(max_length=50, verbose_name='期望职位', blank=True, default='')
     skills = models.CharField(max_length=255, verbose_name='技能标签', blank=True,
                               help_text='多个标签用逗号分隔，如: Python,Vue')
     exp_city = models.CharField(max_length=50, verbose_name='期望工作城市',blank=True, default='')

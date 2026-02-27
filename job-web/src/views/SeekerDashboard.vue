@@ -76,6 +76,11 @@
               </div>
             </div>
 
+            <div class="col-md-6 mb-3">
+                <label class="form-label">期望职位</label>
+                <input type="text" class="form-control" v-model="profileForm.exp_job" placeholder="">
+              </div>
+
             <div class="mb-3">
               <label class="form-label">技能标签 (用逗号分隔)</label>
               <input type="text" class="form-control" v-model="profileForm.skills" placeholder="例如：Python, Vue, MySQL">
@@ -84,7 +89,7 @@
             <div class="col-md-6 mb-3">
                 <label class="form-label">期望工作城市</label>
                 <input type="text" class="form-control" v-model="profileForm.exp_city" placeholder="例如：北京、上海、广州">
-              </div>
+            </div>
 
             <div class="mb-3">
               <label class="form-label">工作/实习经历</label>
@@ -187,6 +192,7 @@ const profileForm = reactive({
   major: '',
   skills: '',
   birth_date: '',
+  exp_job:'',
   exp_city:'',
   experience: '',
   job_status: '待业'
