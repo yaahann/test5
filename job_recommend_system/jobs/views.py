@@ -100,15 +100,15 @@ class JobDetailView(generics.RetrieveUpdateDestroyAPIView):
             try:
                 seeker = JobSeeker.objects.get(user=request.user)
                 # 提取求职者画像
-                user_features = [seeker.skills or "", seeker.education or "", seeker.major or "",
-                                 seeker.experience or ""]
+                user_features = [(seeker.skills or "")*3, seeker.education or "", seeker.major or "",
+                                 seeker.experience or "",(seeker.exp_job or "")*3,(seeker.exp_city or "")*3]
                 user_text = " ".join(user_features)
 
                 if user_text.strip():
                     # 提取当前这个岗位的画像
                     job_features = [
-                        instance.job_title, instance.job_tags or "", instance.description or "",
-                        instance.city, instance.education_req, instance.exp_req
+                        instance.job_title * 3, (instance.job_tags or "") * 3, instance.description or "",
+                        instance.city * 3, instance.education_req, instance.exp_req
                     ]
                     job_text = " ".join(job_features)
 

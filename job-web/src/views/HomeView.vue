@@ -49,22 +49,24 @@
         </div>
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-        <h3>🏢 热门企业</h3>
-        <router-link to="/companies" class="text-decoration-none">查看全部 &gt;</router-link>
-      </div>
-      <div class="row">
-        <div class="col-md-3 mb-4" v-for="comp in hotCompanies" :key="comp.id">
-          <div class="card h-100 shadow-sm text-center p-3" @click="handleCardClick(`/companies/${comp.id}`)" style="cursor: pointer;">
-             <div class="fs-1 mb-2">🏢</div>
-            <h5 class="fw-bold">{{ comp.company_name }}</h5>
-            <small class="text-muted text-truncate">{{ comp.industry || '互联网' }}</small>
+      <div class="my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h3>🏢 热门企业</h3>
+          <router-link to="/companies" class="text-decoration-none">查看全部 &gt;</router-link>
+        </div>
+        <div class="row">
+          <div class="col-md-3 mb-4" v-for="comp in hotCompanies" :key="comp.id">
+            <div class="card h-100 shadow-sm text-center p-3" @click="handleCardClick(`/companies/${comp.id}`)" style="cursor: pointer;">
+               <div class="fs-1 mb-2">🏢</div>
+              <h5 class="fw-bold">{{ comp.company_name }}</h5>
+              <small class="text-muted text-truncate">{{ comp.industry || '互联网' }}</small>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="mb-5">
-        <div class="d-flex justify-content-between align-items-center">
+      <div class="my-6">
+        <div class="d-flex justify-content-between align-items-center" mb-4>
           <h3>📰 最新资讯</h3>
           <router-link to="/news" class="text-decoration-none">查看更多 &gt;</router-link>
         </div>

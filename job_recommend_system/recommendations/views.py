@@ -27,12 +27,17 @@ class ContentBasedRecommendationView(APIView):
         except JobSeeker.DoesNotExist:
             return Response({"detail": "求职者资料不完善"}, status=400)
 
+        stop_words = {'要求', '熟悉', '负责', '以上', '能力', '优先', '参与', '熟练', '掌握', '天', '每周',
+                      '出勤', '1', '2', '3','4','5','6'}
+
         # 2. 提取并构造“求职者画像文本”
         user_features = [
-            seeker.skills or "",
+            (seeker.skills or "")*3,
             seeker.education or "",
             seeker.major or "",
-            seeker.experience or ""
+            seeker.experience or "",
+            (seeker.exp_job or "")*3,
+            (seeker.exp_city or "")*3
         ]
         user_text = " ".join(user_features)
 
@@ -50,10 +55,10 @@ class ContentBasedRecommendationView(APIView):
         job_texts = []
         for job in job_list:
             job_features = [
-                job.job_title,
-                job.job_tags or "",
+                job.job_title * 3,
+                (job.job_tags or "") * 3,
                 job.description or "",
-                job.city,
+                job.city * 3,
                 job.education_req,
                 job.exp_req
             ]
