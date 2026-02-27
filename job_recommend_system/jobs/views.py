@@ -6,6 +6,9 @@ from rest_framework.views import APIView # 引入 APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, filters
+import jieba
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # 1. 职位列表与发布视图
 # jobs/views.py
@@ -85,6 +88,50 @@ class JobDetailView(generics.RetrieveUpdateDestroyAPIView):
     # 但凡招聘者修改了职位信息，状态强制变为待审(0)
     def perform_update(self, serializer):
         serializer.save(status=0)
+
+    # 重写 retrieve 方法，在获取详情时实时计算当前求职者的匹配度
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+
+        # 判断：如果当前是登录状态，且是求职者 (role_type == 1)
+        if request.user.is_authenticated and request.user.role_type == 1:
+            try:
+                seeker = JobSeeker.objects.get(user=request.user)
+                # 提取求职者画像
+                user_features = [seeker.skills or "", seeker.education or "", seeker.major or "",
+                                 seeker.experience or ""]
+                user_text = " ".join(user_features)
+
+                if user_text.strip():
+                    # 提取当前这个岗位的画像
+                    job_features = [
+                        instance.job_title, instance.job_tags or "", instance.description or "",
+                        instance.city, instance.education_req, instance.exp_req
+                    ]
+                    job_text = " ".join(job_features)
+
+                    # 分词与向量化
+                    user_words = " ".join(jieba.lcut(user_text))
+                    job_words = " ".join(jieba.lcut(job_text))
+
+                    vectorizer = TfidfVectorizer()
+                    tfidf_matrix = vectorizer.fit_transform([user_words, job_words])
+
+                    # 计算两个文本的余弦相似度
+                    score = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+
+                    # 存入返回的 JSON 数据中
+                    if score > 0.05:
+                        data['match_score'] = round(score * 100, 1)
+                    else:
+                        data['match_score'] = 0
+            except Exception as e:
+                # 容错处理，如果计算失败不影响详情页的正常展示
+                pass
+
+        return Response(data)
 
 
 # 3：招聘者查看自己发布的职位列表

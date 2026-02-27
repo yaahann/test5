@@ -13,19 +13,38 @@
       </div>
     </div>
 
-    <div class="container mt-5">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3>🔥 热门职位</h3>
-        <router-link to="/jobs" class="text-decoration-none">查看全部 &gt;</router-link>
-      </div>
-      <div class="row">
-        <div class="col-md-3 mb-4" v-for="job in hotJobs" :key="job.id">
-          <div class="card h-100 shadow-sm border-0" @click="handleCardClick(`/jobs/${job.id}`)" style="cursor: pointer;">
-            <div class="card-body">
-              <h5 class="card-title text-truncate">{{ job.job_title }}</h5>
-              <p class="text-success fw-bold">{{ job.salary_min }}-{{ job.salary_max }}k</p>
-              <small class="text-muted">{{ job.company_name }}</small>
+    <div class="container">
+      <div class="py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h3 class="fw-bold">{{ isSeeker ? '✨ 为您智能推荐' : '🔥 最新热招职位' }}</h3>
+          <router-link to="/jobs" class="text-decoration-none">查看更多 &gt;</router-link>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-4" v-for="job in displayJobs" :key="job.id">
+            <div class="card shadow-sm hover-shadow border-0 h-100" @click="$router.push(`/jobs/${job.id}`)" style="cursor: pointer;">
+              <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h5 class="card-title text-primary fw-bold mb-0">{{ job.job_title }}</h5>
+                  <h5 class="text-danger fw-bold mb-0">{{ job.salary_min }}-{{ job.salary_max }}k</h5>
+                </div>
+
+                <div class="mb-3 mt-2">
+                  <span class="badge bg-light text-dark border me-2">{{ job.city }}</span>
+                  <span class="badge bg-light text-dark border me-2">{{ job.exp_req }}</span>
+                  <span class="badge bg-light text-dark border">{{ job.education_req }}</span>
+                </div>
+                <div class="d-flex align-items-center mt-3 pt-3 border-top">
+                  <div class="text-muted small">
+                    🏢 {{ job.company_name || '知名企业' }}
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <div v-if="displayJobs.length === 0" class="col-12 text-center text-muted py-5">
+            暂无职位数据
           </div>
         </div>
       </div>
@@ -44,7 +63,7 @@
         </div>
       </div>
 
-      <div class="mt-4 mb-5">
+      <div class="mb-5">
         <div class="d-flex justify-content-between align-items-center">
           <h3>📰 最新资讯</h3>
           <router-link to="/news" class="text-decoration-none">查看更多 &gt;</router-link>
@@ -78,7 +97,8 @@ import { useUserStore } from '../stores/user' // 引入 store 用来判断是否
 const userStore = useUserStore()
 const router = useRouter()
 const keyword = ref('')
-const hotJobs = ref([])
+
+const displayJobs = ref([])
 const hotCompanies = ref([])
 const latestNews = ref([])
 
@@ -86,6 +106,11 @@ const handleSearch = () => {
   // 跳转到职位列表页并带上参数
   router.push({ path: '/jobs', query: { search: keyword.value } })
 }
+
+// 判断当前用户是否为登录的求职者 (role_type == 1)
+const role = localStorage.getItem('role_type')
+const token = localStorage.getItem('access_token')
+const isSeeker = ref(role == '1')
 
 onMounted(async () => {
   // 1. 删掉原来的 if (!token) router.push('/login')
@@ -98,10 +123,16 @@ onMounted(async () => {
   }
 
   try {
-    // 获取职位
-    const jobRes = await axios.get('http://127.0.0.1:8000/api/jobs/', config)
-    // 假设后端返回的数据结构没变
-    hotJobs.value = jobRes.data.results ? jobRes.data.results.slice(0, 4) : jobRes.data.slice(0, 4)
+    // 1. 【核心修改】：根据身份决定请求的职位接口
+    if (isSeeker.value && token) {
+      // 求职者：请求智能推荐接口
+      const recommendRes = await axios.get('http://127.0.0.1:8000/api/recommendations/jobs/', config)
+      displayJobs.value = recommendRes.data.slice(0, 6) // 取前6个展示在首页
+    } else {
+      // 其他人：请求普通最新职位接口
+      const normalRes = await axios.get('http://127.0.0.1:8000/api/jobs/', config)
+      displayJobs.value = normalRes.data.results ? normalRes.data.results.slice(0, 6) : normalRes.data.slice(0, 6)
+    }
 
     // 获取公司 (users/urls.py 里配置的 public_companies 应该是 AllowAny)
     const compRes = await axios.get('http://127.0.0.1:8000/api/users/companies/', config)

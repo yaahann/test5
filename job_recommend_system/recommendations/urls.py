@@ -1,7 +1,7 @@
 from django.urls import path
-from .views import JobRecommendationView
+from .views import ContentBasedRecommendationView
 
 urlpatterns = [
-    # 推荐给求职者的职位: /api/recommendations/jobs/
-    path('jobs/', JobRecommendationView.as_view(), name='recommend_jobs'),
+    # 推荐列表接口：/api/recommendations/jobs/
+    path('jobs/', ContentBasedRecommendationView.as_view(), name='recommend_jobs'),
 ]

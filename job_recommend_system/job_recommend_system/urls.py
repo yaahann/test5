@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/recruitment/', include('recruitment.urls')),
     # 新增 recommendations 路由
     path('api/recommendations/', include('recommendations.urls')),
+
 ]
 
 # 仅在开发模式下生效

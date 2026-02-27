@@ -34,6 +34,18 @@
             <div class="text-secondary" style="white-space: pre-wrap; line-height: 1.8;">
               {{ job.description }}
             </div>
+
+            <div v-if="job.match_score && job.match_score > 0" class="alert alert-warning py-3 mb-4 shadow-sm border-warning d-flex align-items-center">
+            <div class="fs-1 me-3">🎯</div>
+            <div>
+              <h5 class="alert-heading fw-bold mb-1 text-dark">AI 职位匹配分析</h5>
+              <p class="mb-0 text-dark">
+                系统检测到您的技能和经历与该职位的要求综合匹配度达
+                <span class="text-danger fw-bold fs-4 ms-1">{{ job.match_score }}%</span>
+                ！
+              </p>
+            </div>
+          </div>
           </div>
         </div>
       </div>
