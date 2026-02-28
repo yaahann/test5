@@ -8,6 +8,7 @@ from rest_framework import permissions
 
 from jobs.models import Job
 from jobs.serializers import JobSerializer
+from users.serializers import JobSeekerSerializer
 from users.models import JobSeeker
 
 
@@ -108,5 +109,93 @@ class ContentBasedRecommendationView(APIView):
         data = serializer.data
         for idx, job_data in enumerate(data):
             job_data['match_score'] = getattr(top_jobs[idx], 'match_score', 0)
+
+        return Response(data)
+
+
+# 给招聘者推荐候选人的接口
+class CandidateRecommendationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+
+        # 1. 权限校验
+        if user.role_type != 2:
+            return Response({"detail": "只有招聘者可以使用此功能"}, status=403)
+
+        job_id = request.query_params.get('job_id')
+        if not job_id:
+            return Response({"detail": "必须提供具体的职位ID"}, status=400)
+
+        # 2. 拿到基准职位
+        try:
+            target_job = Job.objects.get(id=job_id, recruiter__user=user)
+        except Job.DoesNotExist:
+            return Response({"detail": "职位不存在或无权访问"}, status=404)
+
+        # 提取职位特征 (乘以3加重核心词权重)
+        job_features = [
+            (target_job.job_title or "") * 3,
+            (target_job.job_tags or "") * 3,
+            target_job.city,
+            target_job.description or "",
+            target_job.education_req,
+            target_job.exp_req
+        ]
+        job_text = " ".join(job_features)
+
+        # 3. 拿到全库活跃的求职者
+        seekers = JobSeeker.objects.all()
+        if not seekers.exists():
+            return Response([])
+
+        seeker_list = list(seekers)
+        seeker_texts = []
+        for seeker in seeker_list:
+            seeker_features = [
+                (seeker.skills or "") * 3,
+                (seeker.exp_job or "") * 3,
+                seeker.exp_city or "",
+                seeker.education or "",
+                seeker.major or "",
+                seeker.experience or ""
+            ]
+            seeker_texts.append(" ".join(seeker_features))
+
+        # 4. TF-IDF + 余弦相似度计算
+        job_words = " ".join(jieba.lcut(job_text))
+        seeker_words_list = [" ".join(jieba.lcut(t)) for t in seeker_texts]
+
+        corpus = [job_words] + seeker_words_list
+        vectorizer = TfidfVectorizer()
+
+        try:
+            tfidf_matrix = vectorizer.fit_transform(corpus)
+        except ValueError:
+            return Response([])
+
+        # 计算这个职位与所有求职者的相似度
+        cosine_sim = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:]).flatten()
+
+        # 5. 打分、排序并截取 Top 10
+        import math
+        scored_seekers = []
+        for i, seeker in enumerate(seeker_list):
+            score = cosine_sim[i]
+            if score > 0.01:  # 稍微放宽一点阈值
+                # 同样使用开根号平滑分数
+                seeker.match_score = round(math.sqrt(score) * 100, 1)
+                scored_seekers.append((seeker, score))
+
+        scored_seekers.sort(key=lambda x: x[1], reverse=True)
+        top_seekers = [item[0] for item in scored_seekers[:10]]
+
+        # 6. 序列化返回
+        serializer = JobSeekerSerializer(top_seekers, many=True)
+        data = serializer.data
+        for idx, seeker_data in enumerate(data):
+            # 将匹配度挂载到返回数据中
+            seeker_data['match_score'] = getattr(top_seekers[idx], 'match_score', 0)
 
         return Response(data)

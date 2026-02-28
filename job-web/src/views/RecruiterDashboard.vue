@@ -23,6 +23,9 @@
             👥 候选人处理
             <span v-if="applications.length > 0" class="badge bg-danger ms-2">{{ applications.length }}</span>
           </button>
+          <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'recommend' }" @click="currentTab = 'recommend'">
+            ✨ 发现牛人
+          </button>
         </div>
       </div>
 
@@ -174,6 +177,61 @@
           </table>
         </div>
 
+        <div v-if="currentTab === 'recommend'">
+          <h4>✨ 发现牛人 <span class="fs-6 text-muted fw-normal ms-2">AI 智能简历匹配</span></h4>
+          <hr>
+
+          <div class="card bg-light border-0 shadow-sm mb-4 p-3">
+            <label class="form-label fw-bold text-dark">🎯 请选择您要为哪个岗位寻找候选人？</label>
+            <select class="form-select form-select-lg" v-model="selectedJobId" @change="fetchCandidates">
+              <option value="">-- 请下拉选择一个您正在招聘中的职位 --</option>
+              <option v-for="job in activeJobs" :key="job.id" :value="job.id">
+                {{ job.job_title }} ({{ job.city }}) - {{ job.salary_min }}k~{{ job.salary_max }}k
+              </option>
+            </select>
+          </div>
+
+          <div v-if="selectedJobId" class="row">
+            <div class="col-md-6 mb-3" v-for="candidate in recommendedCandidates" :key="candidate.id">
+              <div class="card shadow-sm h-100 border-0" style="transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="fw-bold text-primary mb-0">
+                      {{ candidate.name ? candidate.name[0] + '先生/女士' : '某求职者' }}
+                      <small class="text-muted ms-1 fs-6">{{ candidate.gender || '' }}</small>
+                    </h5>
+
+                  </div>
+
+                  <div class="mb-2">
+                    <span class="badge bg-light text-dark border me-1">{{ candidate.education || '学历不限' }}</span>
+                    <span class="badge bg-light text-dark border me-1">{{ candidate.major || '专业不限' }}</span>
+                  </div>
+
+                  <p class="mb-1 text-dark small fw-bold">期望：{{ candidate.exp_job || '未填' }} | {{ candidate.exp_city || '未填' }}</p>
+
+                  <div class="bg-light p-2 rounded mt-2 mb-3 small" style="height: 60px; overflow: hidden;">
+                    <span class="fw-bold text-secondary">核心技能：</span>
+                    {{ candidate.skills || '未填写技能，算法根据其他维度推荐' }}
+                  </div>
+
+                  <button class="btn btn-outline-primary btn-sm w-100 mt-auto">👀 查看完整简历 (待开发)</button>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="recommendedCandidates.length === 0" class="col-12 text-center py-5 text-muted">
+              没有找到高匹配度的候选人，可能是目前人才库没有对口求职者。
+            </div>
+          </div>
+
+          <div v-else class="text-center py-5 text-muted">
+            <h1 class="display-4 mb-3">🔍</h1>
+            <h5>请先在上方选择一个职位</h5>
+            <p>将自动为您从全平台匹配最适合的牛人</p>
+          </div>
+        </div>
+
         <div v-if="currentTab === 'candidates'">
           <h4>收到的简历</h4>
           <hr>
@@ -289,7 +347,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted ,computed } from 'vue'
 import { Modal } from 'bootstrap'
 import axios from 'axios'
 
@@ -299,6 +357,8 @@ const myJobs = ref([])
 const applications = ref([])
 // 从本地存储获取token（这里如果获取不到，要注意提示登录）
 const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+const selectedJobId = ref('')
+const recommendedCandidates = ref([])
 
 // 新增：企业信息表单数据
 const profileForm = reactive({
@@ -440,6 +500,29 @@ const submitEditJob = async () => {
   } catch (error) {
     console.error('修改失败:', error)
     alert('❌ 修改失败: ' + (error.response?.data?.detail || '请检查填写内容'))
+  }
+}
+
+// 计算属性：从 myJobs 列表里过滤出当前“招聘中”的职位供 HR 选择
+const activeJobs = computed(() => {
+  return myJobs.value.filter(job => job.status === 1)
+})
+
+// 根据选中的职位去请求推荐的牛人
+const fetchCandidates = async () => {
+  if (!selectedJobId.value) {
+    recommendedCandidates.value = []
+    return
+  }
+
+  try {
+    const res = await axios.get(`http://127.0.0.1:8000/api/recommendations/candidates/?job_id=${selectedJobId.value}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    recommendedCandidates.value = res.data
+  } catch (error) {
+    console.error('获取候选人失败:', error)
+    alert('获取推荐失败，请确认职位状态是否正常')
   }
 }
 
