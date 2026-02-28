@@ -65,8 +65,11 @@ class ContentBasedRecommendationView(APIView):
             job_texts.append(" ".join(job_features))
 
         # 4. 使用 jieba 进行中文分词
-        user_words = " ".join(jieba.lcut(user_text))
-        job_words_list = [" ".join(jieba.lcut(t)) for t in job_texts]
+        user_words = " ".join([w for w in jieba.lcut(user_text) if w not in stop_words])
+        job_words_list = [
+            " ".join([w for w in jieba.lcut(t) if w not in stop_words])
+            for t in job_texts
+        ]
 
         # 5. TF-IDF 向量化 + 余弦相似度计算
         corpus = [user_words] + job_words_list
