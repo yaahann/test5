@@ -2,7 +2,8 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import RegisterView, MyTokenObtainPairView, JobSeekerDetailView,RecruiterDetailView
 from .views import (PublicCompanyListView,PublicCompanyDetailView,
-                    AdminPendingRecruitersView,AdminAuditRecruiterView,AdminStatsView,AdminAllSeekersView,AdminAllRecruitersView)
+                    AdminPendingRecruitersView,AdminAuditRecruiterView,AdminStatsView,AdminAllSeekersView,AdminAllRecruitersView,
+                    SendMessageView,MyMessagesView,MarkMessageReadView)
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -17,4 +18,7 @@ urlpatterns = [
     path('admin/stats/', AdminStatsView.as_view(), name='admin_stats'),
     path('admin/seekers/all/', AdminAllSeekersView.as_view()),
     path('admin/recruiters/all/', AdminAllRecruitersView.as_view()),
+    path('messages/send/', SendMessageView.as_view(), name='send_message'),
+    path('messages/my/', MyMessagesView.as_view(), name='my_messages'),
+    path('messages/<int:pk>/read/', MarkMessageReadView.as_view(), name='mark_message_read'),
 ]

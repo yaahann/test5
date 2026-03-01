@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, JobSeeker,Recruiter
+from .models import User, JobSeeker,Recruiter,Message
 
 
 # 1. 注册序列化器
@@ -46,12 +46,23 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 # 3. 求职者资料序列化器 (新增！解决 JobSeekerSerializer 报错)
 class JobSeekerSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
     class Meta:
         model = JobSeeker
         fields = '__all__'
-        read_only_fields = ('user',)  # 用户关联字段只读，不让改
+
 
 class RecruiterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recruiter
         fields = '__all__' # 或者只暴露 ['id', 'company_name', 'logo', 'description']
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.CharField(source='sender.username', read_only=True)
+    sender_role = serializers.IntegerField(source='sender.role_type', read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'sender', 'sender_name', 'sender_role', 'receiver', 'content', 'is_read', 'create_time']
+        read_only_fields = ['sender', 'is_read']

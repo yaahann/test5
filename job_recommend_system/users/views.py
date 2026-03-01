@@ -1,10 +1,11 @@
 from rest_framework import generics, permissions
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from .models import User, JobSeeker , Recruiter
-from .serializers import RegisterSerializer, MyTokenObtainPairSerializer, JobSeekerSerializer,RecruiterSerializer
+from .models import User, JobSeeker , Recruiter,Message
+from .serializers import RegisterSerializer, MyTokenObtainPairSerializer, JobSeekerSerializer,RecruiterSerializer,MessageSerializer
 from jobs.models import Job
 from recruitment.models import Application
 # 1. 注册接口
@@ -124,3 +125,50 @@ class AdminAllRecruitersView(generics.ListAPIView):
     queryset = Recruiter.objects.all().order_by('-id')
     serializer_class = RecruiterSerializer
     permission_classes = [IsAdminUser]
+
+
+# 1. 发送消息接口
+class SendMessageView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        receiver_id = request.data.get('receiver_id')
+        content = request.data.get('content')
+
+        if not receiver_id or not content:
+            return Response({"detail": "缺少接收人或消息内容"}, status=400)
+
+        try:
+            receiver = User.objects.get(id=receiver_id)
+        except User.DoesNotExist:
+            return Response({"detail": "接收方用户不存在"}, status=404)
+
+        Message.objects.create(
+            sender=request.user,
+            receiver=receiver,
+            content=content
+        )
+        return Response({"message": "发送成功"}, status=201)
+
+
+# 2. 获取我的消息列表接口
+class MyMessagesView(generics.ListAPIView):
+    serializer_class = MessageSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Message.objects.filter(receiver=self.request.user)
+
+
+# 3. 标记消息为已读接口
+class MarkMessageReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            msg = Message.objects.get(pk=pk, receiver=request.user)
+            msg.is_read = True
+            msg.save()
+            return Response({"message": "已读"})
+        except Message.DoesNotExist:
+            return Response({"detail": "消息不存在"}, status=404)

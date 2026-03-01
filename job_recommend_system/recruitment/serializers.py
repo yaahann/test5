@@ -17,7 +17,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
     resume_title = serializers.ReadOnlyField(source='resume.resume_title')
     # 3. 直接获取简历文件的 URL
     resume_file_url = serializers.SerializerMethodField()
-
+    seeker_user_id = serializers.IntegerField(source='seeker.user.id', read_only=True)
     class Meta:
         model = Application
         fields = '__all__'

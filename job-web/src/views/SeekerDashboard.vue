@@ -22,6 +22,12 @@
           <button class="list-group-item list-group-item-action" :class="{ active: currentTab === 'collection' }" @click="currentTab = 'collection'">
             ⭐ 我的收藏
           </button>
+          <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                  :class="{ active: currentTab === 'messages' }"
+                  @click="currentTab = 'messages'">
+            <span>✉️ 消息中心</span>
+            <span v-if="unreadCount > 0" class="badge bg-danger rounded-pill shadow-sm">{{ unreadCount }}</span>
+          </button>
         </div>
       </div>
 
@@ -33,7 +39,6 @@
             <button class="btn btn-primary" @click="updateProfile">💾 保存修改</button>
           </div>
           <hr>
-
           <form @submit.prevent="updateProfile">
             <div class="row">
               <div class="col-md-6 mb-3">
@@ -47,7 +52,6 @@
                   <option value="女">女</option>
                 </select>
               </div>
-
               <div class="col-md-6 mb-3">
                 <label class="form-label">最高学历</label>
                 <select class="form-select" v-model="profileForm.education">
@@ -61,7 +65,6 @@
                 <label class="form-label">专业</label>
                 <input type="text" class="form-control" v-model="profileForm.major" placeholder="例如：计算机科学">
               </div>
-
               <div class="col-md-6 mb-3">
                 <label class="form-label">出生日期</label>
                 <input type="date" class="form-control" v-model="profileForm.birth_date">
@@ -71,7 +74,6 @@
                  <select class="form-select" v-model="profileForm.job_status">
                   <option value="待业">待业</option>
                   <option value="在职">在职</option>
-                 
                 </select>
               </div>
             </div>
@@ -170,14 +172,49 @@
           </div>
         </div>
 
+        <div v-if="currentTab === 'messages'">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>✉️ 消息中心</h4>
+            <button class="btn btn-sm btn-outline-secondary" @click="fetchMessages">🔄 手动刷新</button>
+          </div>
+          <hr>
+
+          <div v-if="messages.length === 0" class="text-center text-muted py-5 mt-4">
+            <h1 class="display-1 text-light mb-3">📭</h1>
+            <p>暂无任何消息</p>
+          </div>
+
+          <div v-else class="list-group mt-3">
+            <div v-for="msg in messages" :key="msg.id"
+                 class="list-group-item mb-3 border-0 shadow-sm rounded"
+                 :class="msg.is_read ? 'bg-light text-muted' : 'bg-white border-start border-4 border-primary'"
+                 style="cursor: pointer; transition: all 0.2s;"
+                 @click="markAsRead(msg)">
+
+              <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                <h6 class="mb-0 fw-bold" :class="!msg.is_read ? 'text-primary' : 'text-secondary'">
+                  <span v-if="!msg.is_read" class="text-danger me-1">●</span>
+                  来自: {{ msg.sender_role === 2 ? '🏢 企业 HR (' + msg.sender_name + ')' : '系统通知' }}
+                </h6>
+                <small :class="!msg.is_read ? 'text-primary fw-bold' : 'text-muted'">
+                  {{ new Date(msg.create_time).toLocaleString() }}
+                </small>
+              </div>
+              <p class="mb-1 mt-3" style="white-space: pre-wrap; font-size: 15px; line-height: 1.6;">
+                {{ msg.content }}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive,onUnmounted } from 'vue'
 import axios from 'axios'
+import router from "@/router/index.js";
 
 const currentTab = ref('profile')
 const myResumes = ref([])
@@ -347,10 +384,54 @@ const removeCollection = async (jobId) => {
   }
 }
 
+// --- 消息功能逻辑 ---
+const messages = ref([])
+const unreadCount = ref(0)
+let pollingTimer = null
+
+const fetchMessages = async () => {
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/users/messages/my/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    messages.value = res.data
+    unreadCount.value = messages.value.filter(m => !m.is_read).length
+  } catch (error) {
+    console.error('获取消息失败:', error)
+  }
+}
+
+const markAsRead = async (msg) => {
+  if (msg.is_read) return
+  try {
+    await axios.post(`http://127.0.0.1:8000/api/users/messages/${msg.id}/read/`, {}, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    msg.is_read = true
+    unreadCount.value--
+  } catch (error) {
+    console.error('标记已读失败:', error)
+  }
+}
+
+// 在 onMounted 中调用
 onMounted(() => {
+  if (!token) {
+    router.push('/login')
+    return
+  }
   fetchProfile()
   fetchResumes()
   fetchApplications()
   fetchCollections()
+  fetchMessages()
+  // 开启轮询，每15秒拉取一次最新消息
+  pollingTimer = setInterval(fetchMessages, 15000)
 })
+
+onUnmounted(() => {
+  if (pollingTimer) clearInterval(pollingTimer)
+})
+
+
 </script>

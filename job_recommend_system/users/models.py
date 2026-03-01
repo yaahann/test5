@@ -76,3 +76,21 @@ class Recruiter(models.Model):
 
     def __str__(self):
         return self.company_name if self.company_name else f"{self.user.username} (待完善企业)"
+
+# 4. Message 站内私信
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages', verbose_name='发送方')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages',
+                                 verbose_name='接收方')
+
+    content = models.TextField(verbose_name='消息内容')
+    is_read = models.BooleanField(default=False, verbose_name='是否已读')
+    create_time = models.DateTimeField(auto_now_add=True, verbose_name='发送时间')
+
+    class Meta:
+        verbose_name = '站内私信'
+        verbose_name_plural = verbose_name
+        ordering = ['-create_time']  # 最新消息排在最前面
+
+    def __str__(self):
+        return f"{self.sender.username} -> {self.receiver.username}"

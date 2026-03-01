@@ -214,8 +214,7 @@
                     <span class="fw-bold text-secondary">核心技能：</span>
                     {{ candidate.skills || '未填写技能，算法根据其他维度推荐' }}
                   </div>
-
-                  <button class="btn btn-outline-primary btn-sm w-100 mt-auto">👀 查看完整简历 (待开发)</button>
+                  <button class="btn btn-outline-primary btn-sm w-100 mt-auto" @click="openInterviewModal(candidate.user_id)">🚀 邀请TA面试</button>
                 </div>
               </div>
             </div>
@@ -249,9 +248,7 @@
                 </a>
 
                 <template v-if="app.status === 0">
-                  <button class="btn btn-sm btn-success" @click="updateStatus(app.id, 2)">
-                    ✅ 邀请面试
-                  </button>
+                  <button class="btn btn-sm btn-success me-2" @click="openInterviewModal(app.seeker_user_id, app.id)">邀请面试</button>
                   <button class="btn btn-sm btn-danger" @click="updateStatus(app.id, 4)">
                     ❌ 不合适
                   </button>
@@ -341,6 +338,38 @@
               <button type="submit" class="btn btn-primary">💾 保存修改</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  <div class="modal fade" id="interviewModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">发送面试邀请</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">面试时间</label>
+              <input type="datetime-local" class="form-control" v-model="interviewForm.time">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">面试地点</label>
+              <input type="text" class="form-control" v-model="interviewForm.location" placeholder="例如：某某大厦5楼会议室">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">联系人及电话</label>
+              <input type="text" class="form-control" v-model="interviewForm.contact" placeholder="例如：王经理 138xxxx0000">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">附加说明 (可选)</label>
+              <textarea class="form-control" v-model="interviewForm.note" rows="2" placeholder="例如：请携带纸质简历或作品集..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" @click="sendInterviewInvite">🚀 发送邀请并更新状态</button>
+          </div>
         </div>
       </div>
     </div>
@@ -503,6 +532,64 @@ const submitEditJob = async () => {
   }
 }
 
+
+// --- 面试邀请逻辑 ---
+const interviewForm = reactive({
+  applicationId: null, // 如果是主动发现的牛人，这个值就是 null
+  receiverId: null,
+  time: '',
+  location: '',
+  contact: '',
+  note: ''
+})
+
+let interviewModalInstance = null
+
+//  1：把参数顺序换一下，并且允许 appId 为空
+const openInterviewModal = (seekerUserId, appId = null) => {
+  if (!seekerUserId) {
+    alert("系统错误：无法获取求职者账号ID！")
+    return
+  }
+  interviewForm.receiverId = seekerUserId
+  interviewForm.applicationId = appId // 可能是 null
+
+  if (!interviewModalInstance) {
+    interviewModalInstance = new Modal(document.getElementById('interviewModal'))
+  }
+  interviewModalInstance.show()
+}
+
+// 2：发送消息后，判断有没有 appId，有才去更新状态
+const sendInterviewInvite = async () => {
+  if (!interviewForm.time || !interviewForm.location || !interviewForm.contact) {
+    alert('请填写完整的面试时间、地点和联系人！')
+    return
+  }
+
+  const messageContent = `【面试邀请】\n您好！我们认真看了您的简历，认为您非常符合我们的岗位要求，特邀请您参加面试。\n\n📅 面试时间：${interviewForm.time.replace('T', ' ')}\n📍 面试地点：${interviewForm.location}\n📞 联系人：${interviewForm.contact}\n📝 附加说明：${interviewForm.note || '无'}\n\n期待您的到来！`
+
+  try {
+    // 1. 发送私信 (所有人都要发)
+    await axios.post('http://127.0.0.1:8000/api/users/messages/send/', {
+      receiver_id: interviewForm.receiverId,
+      content: messageContent
+    }, { headers: { 'Authorization': `Bearer ${token}` } })
+
+    // 2. 如果存在投递记录 ID，才去更新投递状态
+    if (interviewForm.applicationId) {
+       await updateStatus(interviewForm.applicationId, 2)
+    }
+
+    alert('✅ 面试邀请已发送！求职者会在消息中心收到通知。')
+    interviewModalInstance.hide()
+  } catch (error) {
+    console.error(error)
+    alert('发送失败，请检查网络面板。')
+  }
+}
+
+
 // 计算属性：从 myJobs 列表里过滤出当前“招聘中”的职位供 HR 选择
 const activeJobs = computed(() => {
   return myJobs.value.filter(job => job.status === 1)
@@ -584,6 +671,7 @@ const getBadgeClass = (s) => {
    const map = {0: 'bg-secondary', 2: 'bg-warning text-dark', 3: 'bg-success', 4: 'bg-danger'}
    return map[s] || 'bg-light text-dark'
 }
+
 
 onMounted(() => {
   // 新增：初始化时加载企业资料
